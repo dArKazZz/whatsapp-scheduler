@@ -29,7 +29,7 @@ function addLog(msg) {
   const line = `[${new Date().toISOString()}] ${msg}`;
   console.log(line);
   recentLogs.push(line);
-  if (recentLogs.length > 60) recentLogs.shift();
+  if (recentLogs.length > 80) recentLogs.shift();
 }
 
 if (!MONGO_URI) {
@@ -44,7 +44,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Cachés en memoria para reintentos y almacenamiento de mensajes
 const msgRetryCounterCache = new NodeCache();
-const sentMessagesCache = new NodeCache({ stdTTL: 86400 }); // 24 horas de retención
+const sentMessagesCache = new NodeCache({ stdTTL: 86400 });
 
 // ==========================================
 // 2. MODELOS DE MONGODB
@@ -175,6 +175,7 @@ async function connectWhatsApp() {
     const { state, saveCreds } = await useMongoAuthState();
     const logger = pino({ level: 'silent' });
 
+    // Se utiliza Browsers.ubuntu('Chrome') (WhatsApp Web estándar) para máxima compatibilidad multiplataforma
     const sock = makeWASocket({
       auth: {
         creds: state.creds,
@@ -182,24 +183,23 @@ async function connectWhatsApp() {
       },
       printQRInTerminal: false,
       logger,
-      browser: Browsers.macOS('Desktop'),
+      browser: Browsers.ubuntu('Chrome'),
       syncFullHistory: false,
       markOnlineOnConnect: true,
       generateHighQualityLinkPreview: true,
       msgRetryCounterCache,
-      // Implementación robusta de getMessage para responder reintentos de descifrado
       getMessage: async (key) => {
         try {
           if (key && key.id) {
             const cached = sentMessagesCache.get(key.id);
             if (cached) {
-              addLog(`[Baileys] getMessage: respondiendo retry para ID ${key.id} desde caché`);
+              addLog(`[Baileys] getMessage: respondiendo retry para ID ${key.id} desde memoria`);
               return cached;
             }
 
             const doc = await MessageModel.findOne({ messageId: key.id });
             if (doc && doc.message) {
-              addLog(`[Baileys] getMessage: respondiendo retry para ID ${key.id} desde MongoDB`);
+              addLog(`[Baileys] getMessage: respondiendo retry para ID ${key.id} desde base de datos`);
               return proto.Message.fromObject({ conversation: doc.message });
             }
           }
@@ -213,6 +213,17 @@ async function connectWhatsApp() {
     whatsappState.sock = sock;
 
     sock.ev.on('creds.update', saveCreds);
+
+    // Escuchar mensajes entrantes para registrar handshake
+    sock.ev.on('messages.upsert', async ({ messages, type }) => {
+      for (const m of messages) {
+        if (!m.key.fromMe && m.message) {
+          const sender = m.key.participant || m.key.remoteJid;
+          const text = m.message.conversation || m.message.extendedTextMessage?.text || '[otro]';
+          addLog(`📩 MENSAJE ENTRANTE de ${sender}: "${text}"`);
+        }
+      }
+    });
 
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
@@ -231,7 +242,7 @@ async function connectWhatsApp() {
         whatsappState.connected = true;
         whatsappState.qr = null;
         whatsappState.isReconnecting = false;
-        addLog('[WhatsApp] Conexión establecida con éxito!');
+        addLog(`[WhatsApp] Conexión establecida con éxito! Usuario: ${sock.user?.id || 'OK'}`);
       }
 
       if (connection === 'close') {
@@ -289,12 +300,12 @@ async function processQueue() {
       const cleanPhone = item.phone.toString().replace(/\D/g, '');
       const targetJid = `${cleanPhone}@s.whatsapp.net`;
 
-      addLog(`[Cola] Preparando envío para ${cleanPhone}...`);
+      addLog(`[Cola] Iniciando envío para ${cleanPhone}...`);
 
-      // 1. Handshake previo de presencia
+      // 1. Handshake de presencia
       try {
         await whatsappState.sock.presenceSubscribe(targetJid);
-        await sleep(500);
+        await sleep(400);
         await whatsappState.sock.sendPresenceUpdate('composing', targetJid);
         await sleep(1000);
         await whatsappState.sock.sendPresenceUpdate('paused', targetJid);
@@ -302,9 +313,7 @@ async function processQueue() {
         // No bloqueante
       }
 
-      // 2. Pre-generar messageId y pre-guardar en caché ANTES de enviar
-      // Esto asegura que si el destinatario envía un retryRequest de inmediato,
-      // getMessage ya tiene el contenido listo para re-entregar.
+      // 2. Pre-generación de ID y precarga en caché
       const messageId = generateMessageIDV2();
       const protoMsg = proto.Message.fromObject({ conversation: item.message });
       sentMessagesCache.set(messageId, protoMsg);
@@ -313,7 +322,7 @@ async function processQueue() {
         messageId: messageId
       });
 
-      // 3. Enviar mensaje con messageId pre-asignado
+      // 3. Envío del mensaje
       await whatsappState.sock.sendMessage(targetJid, { text: item.message }, { messageId });
 
       await MessageModel.findByIdAndUpdate(item._id, {
@@ -383,7 +392,6 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Endpoint de diagnóstico en vivo
 app.get('/api/logs', (req, res) => {
   res.json({
     connected: whatsappState.connected,
