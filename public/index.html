@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Scheduler - Panel de Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #131c2e;
+      --bg-card-hover: #17233a;
+      --border-color: #23324d;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --primary: #25d366;
+      --primary-hover: #1eb956;
+      --primary-bg: rgba(37, 211, 102, 0.12);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.12);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      --info: #3b82f6;
+      --info-bg: rgba(59, 130, 246, 0.12);
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* HEADER */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--border-color);
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, #25d366, #128c7e);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+    }
+
+    .logo-title h1 {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-title p {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* BADGES */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.3s ease;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .status-badge.connected {
+      background-color: var(--primary-bg);
+      color: var(--primary);
+      border: 1px solid rgba(37, 211, 102, 0.3);
+    }
+    .status-badge.connected .status-dot {
+      background-color: var(--primary);
+      box-shadow: 0 0 10px var(--primary);
+    }
+
+    .status-badge.disconnected {
+      background-color: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .status-badge.disconnected .status-dot {
+      background-color: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+    }
+
+    /* GRID LAYOUT */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.35fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    @media (max-width: 900px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* CARD CONEXIÓN */
+    .connection-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 280px;
+      text-align: center;
+    }
+
+    .qr-container {
+      background: white;
+      padding: 12px;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+      margin-bottom: 16px;
+      display: inline-block;
+    }
+
+    .qr-container img {
+      display: block;
+      width: 220px;
+      height: 220px;
+    }
+
+    .qr-info {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      max-width: 320px;
+      line-height: 1.5;
+    }
+
+    .connected-state-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      padding: 20px;
+    }
+
+    .connected-icon-wrap {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: var(--primary-bg);
+      border: 2px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    /* FORMULARIO */
+    .form-group {
+      margin-bottom: 18px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--text-muted);
+    }
+
+    input, textarea {
+      width: 100%;
+      background-color: #0b1120;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--text-main);
+      font-size: 0.92rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .field-hint {
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.92rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #051c0e;
+      width: 100%;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* TABLA */
+    .table-card {
+      overflow: hidden;
+    }
+
+    .table-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .btn-refresh {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-refresh:hover {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+    }
+
+    .table-responsive {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    th {
+      background-color: #0d1424;
+      padding: 12px 16px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    td {
+      padding: 14px 16px;
+      font-size: 0.88rem;
+      border-bottom: 1px solid rgba(35, 50, 77, 0.6);
+      vertical-align: middle;
+    }
+
+    tbody tr:hover {
+      background-color: var(--bg-card-hover);
+    }
+
+    /* BADGES DE ESTADO */
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .badge-PENDIENTE {
+      background-color: var(--warning-bg);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-PROCESANDO {
+      background-color: var(--info-bg);
+      color: var(--info);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+    }
+
+    .badge-ENVIADO {
+      background-color: var(--primary-bg);
+      color: var(--primary);
+      border: 1px solid rgba(37, 211, 102, 0.3);
+    }
+
+    .badge-ERROR {
+      background-color: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+
+    .msg-preview {
+      max-width: 280px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #cbd5e1;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    /* TOAST */
+    #toastContainer {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      animation: slideIn 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 260px;
+    }
+
+    .toast.success {
+      background-color: #059669;
+    }
+
+    .toast.error {
+      background-color: #dc2626;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateY(20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .spinner {
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      animation: spin 0.8s linear infinite;
+      margin-bottom: 12px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ENCABEZADO -->
+    <header>
+      <div class="logo-area">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+          </svg>
+        </div>
+        <div class="logo-title">
+          <h1>WhatsApp Scheduler</h1>
+          <p>Persistencia en MongoDB & Despliegue en Render</p>
+        </div>
+      </div>
+      <div>
+        <span id="globalStatusBadge" class="status-badge disconnected">
+          <span class="status-dot"></span>
+          <span id="globalStatusText">Desconectado</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- GRID PRINCIPAL -->
+    <div class="dashboard-grid">
+      <!-- TARJETA 1: ESTADO Y QR -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          Conexión WhatsApp
+        </div>
+        <div id="connectionContainer" class="connection-content">
+          <div class="spinner"></div>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Comprobando estado de conexión...</p>
+        </div>
+      </div>
+
+      <!-- TARJETA 2: FORMULARIO DE PROGRAMACIÓN -->
+      <div class="card">
+        <div class="card-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          Programar Mensaje
+        </div>
+
+        <form id="scheduleForm">
+          <div class="form-group">
+            <label for="phoneInput">Número de Teléfono (con código de país):</label>
+            <input
+              type="text"
+              id="phoneInput"
+              name="phone"
+              placeholder="Ej: +54 9 11 1234-5678 o 5491112345678"
+              required
+            />
+            <div class="field-hint">Incluye el código del país sin espacios ni signos especiales.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="dateInput">Fecha y Hora de Envío:</label>
+            <input
+              type="datetime-local"
+              id="dateInput"
+              name="scheduledAt"
+              required
+            />
+            <div class="field-hint">Selecciona cuándo debe enviarse el mensaje automáticamente.</div>
+          </div>
+
+          <div class="form-group">
+            <label for="messageInput">Mensaje a Enviar:</label>
+            <textarea
+              id="messageInput"
+              name="message"
+              placeholder="Escribe el mensaje que deseas enviar..."
+              required
+            ></textarea>
+            <div class="field-hint" id="charCount">0 caracteres</div>
+          </div>
+
+          <button type="submit" id="submitBtn" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+            <span>Programar Mensaje</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- TARJETA 3: HISTORIAL Y COLA DE MENSAJES -->
+    <div class="card table-card">
+      <div class="table-header-row">
+        <div class="card-title" style="margin-bottom: 0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          Historial y Cola de Mensajes
+        </div>
+        <button id="refreshBtn" class="btn-refresh" title="Actualizar lista">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"></polyline>
+            <polyline points="1 20 1 14 7 14"></polyline>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          Actualizar
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Teléfono</th>
+              <th>Mensaje</th>
+              <th>Fecha Programada</th>
+              <th>Estado</th>
+              <th style="text-align: right;">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="messagesTableBody">
+            <tr>
+              <td colspan="5" class="empty-state">Cargando mensajes...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="toastContainer"></div>
+
+  <!-- JAVASCRIPT VANILLA -->
+  <script>
+    // DOM Elements
+    const globalStatusBadge = document.getElementById('globalStatusBadge');
+    const globalStatusText = document.getElementById('globalStatusText');
+    const connectionContainer = document.getElementById('connectionContainer');
+    const scheduleForm = document.getElementById('scheduleForm');
+    const phoneInput = document.getElementById('phoneInput');
+    const dateInput = document.getElementById('dateInput');
+    const messageInput = document.getElementById('messageInput');
+    const charCount = document.getElementById('charCount');
+    const submitBtn = document.getElementById('submitBtn');
+    const messagesTableBody = document.getElementById('messagesTableBody');
+    const refreshBtn = document.getElementById('refreshBtn');
+    const toastContainer = document.getElementById('toastContainer');
+
+    // Inicializar input de fecha con hora actual + 2 minutos
+    function initDateTime() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() + 2);
+      const isoLocal = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+      dateInput.value = isoLocal;
+      dateInput.min = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+        .toISOString()
+        .slice(0, 16);
+    }
+    initDateTime();
+
+    // Contador de caracteres
+    messageInput.addEventListener('input', () => {
+      charCount.textContent = `${messageInput.value.length} caracteres`;
+    });
+
+    // Mostrar Notificación Toast
+    function showToast(text, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerHTML = `
+        <span>${text}</span>
+      `;
+      toastContainer.appendChild(toast);
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        toast.style.transition = 'all 0.3s ease';
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // 1. Polling de Conexión de WhatsApp (/api/status cada 4s)
+    let currentConnectedState = null;
+    let currentQr = null;
+
+    async function checkStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+
+        // Actualizar Badge Global
+        if (data.connected) {
+          globalStatusBadge.className = 'status-badge connected';
+          globalStatusText.textContent = 'Conectado';
+        } else {
+          globalStatusBadge.className = 'status-badge disconnected';
+          globalStatusText.textContent = 'Desconectado';
+        }
+
+        // Si cambió el estado o el QR, re-renderizar tarjeta de conexión
+        if (currentConnectedState !== data.connected || currentQr !== data.qr) {
+          currentConnectedState = data.connected;
+          currentQr = data.qr;
+          renderConnectionCard(data.connected, data.qr);
+        }
+      } catch (err) {
+        globalStatusBadge.className = 'status-badge disconnected';
+        globalStatusText.textContent = 'Error Servidor';
+      }
+    }
+
+    function renderConnectionCard(connected, qr) {
+      if (connected) {
+        connectionContainer.innerHTML = `
+          <div class="connected-state-box">
+            <div class="connected-icon-wrap">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h3 style="font-size: 1.15rem; color: var(--text-main);">WhatsApp Conectado</h3>
+            <p class="qr-info">
+              Tu número está vinculado y listo para procesar la cola de mensajes programados.
+            </p>
+          </div>
+        `;
+      } else if (qr) {
+        connectionContainer.innerHTML = `
+          <div class="qr-container">
+            <img src="${qr}" alt="Código QR de WhatsApp" />
+          </div>
+          <p class="qr-info">
+            <strong>Escanea este código:</strong> Abre WhatsApp en tu teléfono, ve a <em>Dispositivos vinculados</em> y escanea la imagen.
+          </p>
+        `;
+      } else {
+        connectionContainer.innerHTML = `
+          <div class="spinner"></div>
+          <p style="color: var(--text-muted); font-size: 0.9rem;">Esperando o generando código QR de WhatsApp...</p>
+        `;
+      }
+    }
+
+    // Iniciar polling de estado cada 4 segundos
+    checkStatus();
+    setInterval(checkStatus, 4000);
+
+    // 2. Cargar Lista de Mensajes (/api/messages)
+    async function loadMessages() {
+      try {
+        const res = await fetch('/api/messages');
+        const json = await res.json();
+        const messages = json.data || [];
+
+        if (messages.length === 0) {
+          messagesTableBody.innerHTML = `
+            <tr>
+              <td colspan="5" class="empty-state">No hay mensajes programados actualmente.</td>
+            </tr>
+          `;
+          return;
+        }
+
+        messagesTableBody.innerHTML = messages.map(msg => {
+          const scheduleDate = new Date(msg.scheduledAt).toLocaleString();
+          const isPending = msg.status === 'PENDIENTE' || msg.status === 'ERROR';
+
+          return `
+            <tr>
+              <td><strong>+${msg.phone}</strong></td>
+              <td><div class="msg-preview" title="${escapeHtml(msg.message)}">${escapeHtml(msg.message)}</div></td>
+              <td style="color: var(--text-muted); font-size: 0.82rem;">${scheduleDate}</td>
+              <td>
+                <span class="badge badge-${msg.status}">
+                  ${msg.status}
+                </span>
+                ${msg.error ? `<div style="font-size: 0.72rem; color: var(--danger); margin-top: 4px;" title="${escapeHtml(msg.error)}">${escapeHtml(msg.error.substring(0, 35))}...</div>` : ''}
+              </td>
+              <td style="text-align: right;">
+                <button
+                  class="btn-danger"
+                  onclick="deleteMessage('${msg._id}')"
+                  title="Cancelar / Eliminar"
+                >
+                  Cancelar
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        messagesTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="empty-state" style="color: var(--danger);">Error al cargar los mensajes.</td>
+          </tr>
+        `;
+      }
+    }
+
+    // Cancelar/Eliminar Mensaje
+    window.deleteMessage = async function(id) {
+      if (!confirm('¿Estás seguro de que deseas cancelar o eliminar este mensaje?')) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Mensaje eliminado correctamente.', 'success');
+          loadMessages();
+        } else {
+          showToast(data.error || 'Error al eliminar el mensaje.', 'error');
+        }
+      } catch (err) {
+        showToast('Error de conexión al eliminar el mensaje.', 'error');
+      }
+    };
+
+    // 3. Enviar Formulario de Programación
+    scheduleForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const phone = phoneInput.value.trim();
+      const scheduledAt = dateInput.value;
+      const message = messageInput.value.trim();
+
+      if (!phone || !scheduledAt || !message) {
+        showToast('Por favor completa todos los campos requeridos.', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.querySelector('span').textContent = 'Guardando...';
+
+      try {
+        const res = await fetch('/api/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, scheduledAt, message })
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast('¡Mensaje programado exitosamente!', 'success');
+          messageInput.value = '';
+          charCount.textContent = '0 caracteres';
+          initDateTime();
+          loadMessages();
+        } else {
+          showToast(data.error || 'No se pudo programar el mensaje.', 'error');
+        }
+      } catch (err) {
+        showToast('Error al conectar con el servidor.', 'error');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.querySelector('span').textContent = 'Programar Mensaje';
+      }
+    });
+
+    refreshBtn.addEventListener('click', loadMessages);
+
+    // Escape HTML helper
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Cargar mensajes inicial y refrescar cada 10 segundos
+    loadMessages();
+    setInterval(loadMessages, 10000);
+  </script>
+</body>
+</html>
