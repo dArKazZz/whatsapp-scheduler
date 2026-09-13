@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: whatsapp-scheduler
+    env: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: MONGO_URI
+        sync: false
+      - key: PORT
+        value: 3000
