@@ -6,6 +6,7 @@ const cron = require('node-cron');
 const QRCode = require('qrcode');
 const pino = require('pino');
 const path = require('path');
+const { NodeCache } = require('@cacheable/node-cache');
 const {
   default: makeWASocket,
   DisconnectReason,
@@ -33,6 +34,11 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Cachés en memoria para reintentos y almacenamiento de mensajes
+// Vitales para resolver "Waiting for this message. This may take a while"
+const msgRetryCounterCache = new NodeCache();
+const sentMessagesCache = new NodeCache({ stdTTL: 86400 }); // Retención de 24 horas
+
 // ==========================================
 // 2. MODELOS DE MONGODB
 // ==========================================
@@ -55,6 +61,7 @@ const MessageSchema = new mongoose.Schema(
       enum: ['PENDIENTE', 'PROCESANDO', 'ENVIADO', 'ERROR'],
       default: 'PENDIENTE'
     },
+    messageId: { type: String },
     sentAt: { type: Date },
     error: { type: String }
   },
@@ -161,8 +168,6 @@ async function connectWhatsApp() {
     const { state, saveCreds } = await useMongoAuthState();
     const logger = pino({ level: 'silent' });
 
-    // CRÍTICO: makeCacheableSignalKeyStore mantiene las claves en caché de memoria
-    // evitando desincronizaciones criptográficas que provocan "Waiting for this message"
     const sock = makeWASocket({
       auth: {
         creds: state.creds,
@@ -173,7 +178,27 @@ async function connectWhatsApp() {
       browser: Browsers.macOS('Desktop'),
       syncFullHistory: false,
       markOnlineOnConnect: true,
-      generateHighQualityLinkPreview: true
+      generateHighQualityLinkPreview: true,
+      msgRetryCounterCache,
+      // IMPLEMENTACIÓN CRÍTICA DE getMessage:
+      // Permite responder a los pedidos de reintento (retryRequest) del destinatario
+      // cuando su teléfono solicita re-encriptar el mensaje con la nueva sesión.
+      getMessage: async (key) => {
+        try {
+          if (key && key.id) {
+            const cached = sentMessagesCache.get(key.id);
+            if (cached) return cached;
+
+            const doc = await MessageModel.findOne({ messageId: key.id });
+            if (doc && doc.message) {
+              return { conversation: doc.message };
+            }
+          }
+        } catch (e) {
+          console.warn('[Baileys] getMessage error:', e.message);
+        }
+        return undefined;
+      }
     });
 
     whatsappState.sock = sock;
@@ -234,11 +259,6 @@ async function connectWhatsApp() {
 // ==========================================
 // 6. COLA SECUENCIAL Y LÓGICA ANTI-BAN
 // ==========================================
-function normalizePhone(phone) {
-  const cleanPhone = phone.toString().replace(/\D/g, '');
-  return `${cleanPhone}@s.whatsapp.net`;
-}
-
 function getRandomDelay(min = 8000, max = 20000) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -267,16 +287,15 @@ async function processQueue() {
           targetJid = result.jid;
         }
       } catch (checkErr) {
-        console.warn(`[WhatsApp] No se pudo comprobar existencia de ${cleanPhone}:`, checkErr.message);
+        console.warn(`[WhatsApp] No se pudo verificar existencia de ${cleanPhone}:`, checkErr.message);
       }
 
-      console.log(`[Cola] Preparando handshake para ${cleanPhone} (JID: ${targetJid})...`);
+      console.log(`[Cola] Preparando envío para ${cleanPhone} (JID: ${targetJid})...`);
 
-      // 2. Handshake y suscripción de presencia para calentar el canal E2EE
-      // Esto elimina el problema "Waiting for this message. This may take a while"
+      // 2. Suscripción y simulación de presencia para sincronizar la llave con el receptor
       try {
         await whatsappState.sock.presenceSubscribe(targetJid);
-        await sleep(500);
+        await sleep(600);
         await whatsappState.sock.sendPresenceUpdate('composing', targetJid);
         await sleep(1500);
         await whatsappState.sock.sendPresenceUpdate('paused', targetJid);
@@ -285,15 +304,22 @@ async function processQueue() {
       }
 
       // 3. Envío del mensaje
-      await whatsappState.sock.sendMessage(targetJid, { text: item.message });
+      const sent = await whatsappState.sock.sendMessage(targetJid, { text: item.message });
+
+      // Guardar en caché y en BD el ID del mensaje para reintentos de desencriptación
+      const msgId = sent?.key?.id;
+      if (msgId && sent.message) {
+        sentMessagesCache.set(msgId, sent.message);
+      }
 
       await MessageModel.findByIdAndUpdate(item._id, {
         status: 'ENVIADO',
         sentAt: new Date(),
+        messageId: msgId || null,
         error: null
       });
 
-      console.log(`\x1b[32m[Cola] Mensaje ID ${item._id} enviado con éxito a ${item.phone}\x1b[0m`);
+      console.log(`\x1b[32m[Cola] Mensaje ID ${item._id} enviado con éxito a ${item.phone} (MsgID: ${msgId})\x1b[0m`);
     } catch (err) {
       console.error(`\x1b[31m[Cola] Error al enviar mensaje ID ${item._id} a ${item.phone}:\x1b[0m`, err.message);
 
@@ -377,7 +403,6 @@ app.post('/api/messages', async (req, res) => {
       return res.status(400).json({ error: 'Debe especificar una fecha y hora programada.' });
     }
 
-    // scheduledAt viene en formato ISO estándar desde el frontend con su UTC correcto
     const scheduleDate = new Date(scheduledAt);
     if (isNaN(scheduleDate.getTime())) {
       return res.status(400).json({ error: 'Formato de fecha inválido.' });
@@ -390,7 +415,6 @@ app.post('/api/messages', async (req, res) => {
       status: 'PENDIENTE'
     });
 
-    // Si la fecha programada es inmediata o menor al instante actual, procesar de inmediato
     if (scheduleDate <= new Date()) {
       await MessageModel.findByIdAndUpdate(newMessage._id, { status: 'PROCESANDO' });
       newMessage.status = 'PROCESANDO';
