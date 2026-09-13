@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
+      color-scheme: dark;
       --bg-main: #0b0f19;
       --bg-card: #131c2e;
       --bg-card-hover: #17233a;
@@ -46,7 +47,6 @@
       margin: 0 auto;
     }
 
-    /* HEADER */
     header {
       display: flex;
       justify-content: space-between;
@@ -87,7 +87,6 @@
       color: var(--text-muted);
     }
 
-    /* BADGES */
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -127,7 +126,6 @@
       box-shadow: 0 0 10px var(--danger);
     }
 
-    /* GRID LAYOUT */
     .dashboard-grid {
       display: grid;
       grid-template-columns: 1fr 1.35fr;
@@ -158,7 +156,6 @@
       gap: 10px;
     }
 
-    /* CARD CONEXIÓN */
     .connection-content {
       display: flex;
       flex-direction: column;
@@ -210,7 +207,6 @@
       color: var(--primary);
     }
 
-    /* FORMULARIO */
     .form-group {
       margin-bottom: 18px;
     }
@@ -235,6 +231,70 @@
       transition: all 0.2s ease;
     }
 
+    /* ESTILOS PARA EL SELECTOR DE FECHA/HORA NATIVO */
+    input[type="datetime-local"] {
+      color-scheme: dark;
+      cursor: pointer;
+    }
+
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      cursor: pointer;
+      filter: invert(1) brightness(1.2);
+      opacity: 0.9;
+      transform: scale(1.2);
+      margin-right: 4px;
+    }
+
+    .date-input-wrapper {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn-open-picker {
+      background-color: #1e293b;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 11px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.86rem;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-open-picker:hover {
+      background-color: #27354f;
+      border-color: var(--primary);
+    }
+
+    .quick-time-buttons {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+
+    .quick-btn {
+      background: transparent;
+      border: 1px solid rgba(35, 50, 77, 0.8);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .quick-btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-bg);
+    }
+
     input:focus, textarea:focus {
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
@@ -249,6 +309,11 @@
       font-size: 0.76rem;
       color: var(--text-muted);
       margin-top: 5px;
+    }
+
+    .tz-info {
+      color: #38bdf8;
+      font-weight: 500;
     }
 
     .btn {
@@ -281,7 +346,6 @@
       cursor: not-allowed;
     }
 
-    /* TABLA */
     .table-card {
       overflow: hidden;
     }
@@ -345,7 +409,6 @@
       background-color: var(--bg-card-hover);
     }
 
-    /* BADGES DE ESTADO */
     .badge {
       display: inline-block;
       padding: 4px 10px;
@@ -410,7 +473,6 @@
       font-size: 0.9rem;
     }
 
-    /* TOAST */
     #toastContainer {
       position: fixed;
       bottom: 24px;
@@ -472,7 +534,6 @@
 </head>
 <body>
   <div class="container">
-    <!-- ENCABEZADO -->
     <header>
       <div class="logo-area">
         <div class="logo-icon">
@@ -493,9 +554,8 @@
       </div>
     </header>
 
-    <!-- GRID PRINCIPAL -->
     <div class="dashboard-grid">
-      <!-- TARJETA 1: ESTADO Y QR -->
+      <!-- TARJETA 1: CONEXIÓN -->
       <div class="card">
         <div class="card-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -512,7 +572,7 @@
         </div>
       </div>
 
-      <!-- TARJETA 2: FORMULARIO DE PROGRAMACIÓN -->
+      <!-- TARJETA 2: FORMULARIO -->
       <div class="card">
         <div class="card-title">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -529,21 +589,34 @@
               type="text"
               id="phoneInput"
               name="phone"
-              placeholder="Ej: +54 9 11 1234-5678 o 5491112345678"
+              placeholder="Ej: 51954584523 (sin +, sin espacios)"
               required
             />
-            <div class="field-hint">Incluye el código del país sin espacios ni signos especiales.</div>
+            <div class="field-hint">Coloca el código del país seguido del número (ej: 51 para Perú, 549 para Argentina, etc.).</div>
           </div>
 
           <div class="form-group">
-            <label for="dateInput">Fecha y Hora de Envío:</label>
-            <input
-              type="datetime-local"
-              id="dateInput"
-              name="scheduledAt"
-              required
-            />
-            <div class="field-hint">Selecciona cuándo debe enviarse el mensaje automáticamente.</div>
+            <label for="dateInput">Fecha y Hora de Envío (Hora Local):</label>
+            <div class="date-input-wrapper">
+              <input
+                type="datetime-local"
+                id="dateInput"
+                name="scheduledAt"
+                onclick="openDatePicker()"
+                required
+              />
+              <button type="button" class="btn-open-picker" onclick="openDatePicker()">
+                📅 Calendario
+              </button>
+            </div>
+            <div class="quick-time-buttons">
+              <button type="button" class="quick-btn" onclick="addMinutesToInput(2)">+2 min (Prueba rápida)</button>
+              <button type="button" class="quick-btn" onclick="addMinutesToInput(10)">+10 min</button>
+              <button type="button" class="quick-btn" onclick="addMinutesToInput(30)">+30 min</button>
+              <button type="button" class="quick-btn" onclick="addMinutesToInput(60)">+1 hora</button>
+              <button type="button" class="quick-btn" onclick="addDaysToInput(1)">+1 día</button>
+            </div>
+            <div class="field-hint tz-info" id="tzHint">Detectando zona horaria...</div>
           </div>
 
           <div class="form-group">
@@ -568,7 +641,7 @@
       </div>
     </div>
 
-    <!-- TARJETA 3: HISTORIAL Y COLA DE MENSAJES -->
+    <!-- TARJETA 3: TABLA DE MENSAJES -->
     <div class="card table-card">
       <div class="table-header-row">
         <div class="card-title" style="margin-bottom: 0;">
@@ -598,7 +671,7 @@
             <tr>
               <th>Teléfono</th>
               <th>Mensaje</th>
-              <th>Fecha Programada</th>
+              <th>Fecha Programada (Tu Hora)</th>
               <th>Estado</th>
               <th style="text-align: right;">Acciones</th>
             </tr>
@@ -615,15 +688,14 @@
 
   <div id="toastContainer"></div>
 
-  <!-- JAVASCRIPT VANILLA -->
   <script>
-    // DOM Elements
     const globalStatusBadge = document.getElementById('globalStatusBadge');
     const globalStatusText = document.getElementById('globalStatusText');
     const connectionContainer = document.getElementById('connectionContainer');
     const scheduleForm = document.getElementById('scheduleForm');
     const phoneInput = document.getElementById('phoneInput');
     const dateInput = document.getElementById('dateInput');
+    const tzHint = document.getElementById('tzHint');
     const messageInput = document.getElementById('messageInput');
     const charCount = document.getElementById('charCount');
     const submitBtn = document.getElementById('submitBtn');
@@ -631,32 +703,77 @@
     const refreshBtn = document.getElementById('refreshBtn');
     const toastContainer = document.getElementById('toastContainer');
 
-    // Inicializar input de fecha con hora actual + 2 minutos
+    // Detectar y mostrar la zona horaria del usuario
+    function displayUserTimezone() {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local';
+        const offsetMin = -new Date().getTimezoneOffset();
+        const sign = offsetMin >= 0 ? '+' : '-';
+        const hours = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0');
+        const mins = String(Math.abs(offsetMin) % 60).padStart(2, '0');
+        tzHint.textContent = `🕒 Tu zona horaria: ${tz} (UTC${sign}${hours}:${mins})`;
+      } catch (e) {
+        tzHint.textContent = '🕒 Usando hora local de tu dispositivo';
+      }
+    }
+    displayUserTimezone();
+
+    // Helper para formatear Date a string YYYY-MM-DDTHH:mm para input datetime-local
+    function toLocalISOString(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+
+    // Inicializar input de fecha con hora actual + 5 minutos
     function initDateTime() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() + 2);
-      const isoLocal = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16);
-      dateInput.value = isoLocal;
-      dateInput.min = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 16);
+      const target = new Date();
+      target.setMinutes(target.getMinutes() + 5);
+      dateInput.value = toLocalISOString(target);
+      dateInput.min = toLocalISOString(new Date());
     }
     initDateTime();
 
-    // Contador de caracteres
+    // Abrir selector de fecha al hacer clic
+    function openDatePicker() {
+      if (dateInput.showPicker) {
+        try {
+          dateInput.showPicker();
+        } catch (e) {
+          dateInput.focus();
+        }
+      } else {
+        dateInput.focus();
+      }
+    }
+    window.openDatePicker = openDatePicker;
+
+    // Botones de ajuste rápido de tiempo
+    window.addMinutesToInput = function(minutes) {
+      const target = new Date();
+      target.setMinutes(target.getMinutes() + minutes);
+      dateInput.value = toLocalISOString(target);
+      showToast(`Hora ajustada a las ${target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 'success');
+    };
+
+    window.addDaysToInput = function(days) {
+      const target = new Date();
+      target.setDate(target.getDate() + days);
+      dateInput.value = toLocalISOString(target);
+      showToast(`Fecha ajustada a ${target.toLocaleDateString()} a las ${target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 'success');
+    };
+
     messageInput.addEventListener('input', () => {
       charCount.textContent = `${messageInput.value.length} caracteres`;
     });
 
-    // Mostrar Notificación Toast
     function showToast(text, type = 'success') {
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
-      toast.innerHTML = `
-        <span>${text}</span>
-      `;
+      toast.innerHTML = `<span>${text}</span>`;
       toastContainer.appendChild(toast);
       setTimeout(() => {
         toast.style.opacity = '0';
@@ -675,7 +792,6 @@
         const res = await fetch('/api/status');
         const data = await res.json();
 
-        // Actualizar Badge Global
         if (data.connected) {
           globalStatusBadge.className = 'status-badge connected';
           globalStatusText.textContent = 'Conectado';
@@ -684,7 +800,6 @@
           globalStatusText.textContent = 'Desconectado';
         }
 
-        // Si cambió el estado o el QR, re-renderizar tarjeta de conexión
         if (currentConnectedState !== data.connected || currentQr !== data.qr) {
           currentConnectedState = data.connected;
           currentQr = data.qr;
@@ -728,7 +843,6 @@
       }
     }
 
-    // Iniciar polling de estado cada 4 segundos
     checkStatus();
     setInterval(checkStatus, 4000);
 
@@ -749,19 +863,27 @@
         }
 
         messagesTableBody.innerHTML = messages.map(msg => {
-          const scheduleDate = new Date(msg.scheduledAt).toLocaleString();
-          const isPending = msg.status === 'PENDIENTE' || msg.status === 'ERROR';
+          // Formatear en la hora exacta local del usuario
+          const scheduleDate = new Date(msg.scheduledAt).toLocaleString(undefined, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: true
+          });
 
           return `
             <tr>
               <td><strong>+${msg.phone}</strong></td>
               <td><div class="msg-preview" title="${escapeHtml(msg.message)}">${escapeHtml(msg.message)}</div></td>
-              <td style="color: var(--text-muted); font-size: 0.82rem;">${scheduleDate}</td>
+              <td style="color: #38bdf8; font-size: 0.85rem; font-weight: 500;">${scheduleDate}</td>
               <td>
                 <span class="badge badge-${msg.status}">
                   ${msg.status}
                 </span>
-                ${msg.error ? `<div style="font-size: 0.72rem; color: var(--danger); margin-top: 4px;" title="${escapeHtml(msg.error)}">${escapeHtml(msg.error.substring(0, 35))}...</div>` : ''}
+                ${msg.error ? `<div style="font-size: 0.72rem; color: var(--danger); margin-top: 4px;" title="${escapeHtml(msg.error)}">${escapeHtml(msg.error.substring(0, 40))}...</div>` : ''}
               </td>
               <td style="text-align: right;">
                 <button
@@ -784,7 +906,6 @@
       }
     }
 
-    // Cancelar/Eliminar Mensaje
     window.deleteMessage = async function(id) {
       if (!confirm('¿Estás seguro de que deseas cancelar o eliminar este mensaje?')) {
         return;
@@ -804,18 +925,29 @@
       }
     };
 
-    // 3. Enviar Formulario de Programación
+    // 3. Enviar Formulario de Programación con conversión de Zona Horaria a UTC
     scheduleForm.addEventListener('submit', async (e) => {
       e.preventDefault();
 
       const phone = phoneInput.value.trim();
-      const scheduledAt = dateInput.value;
+      const rawDateVal = dateInput.value;
       const message = messageInput.value.trim();
 
-      if (!phone || !scheduledAt || !message) {
+      if (!phone || !rawDateVal || !message) {
         showToast('Por favor completa todos los campos requeridos.', 'error');
         return;
       }
+
+      // CRÍTICO PARA ZONA HORARIA:
+      // Convertir la fecha local elegida por el usuario a un objeto Date del navegador
+      // y enviarla como ISO String estándar con su marca UTC exacta (Z)
+      const localDateObj = new Date(rawDateVal);
+      if (isNaN(localDateObj.getTime())) {
+        showToast('La fecha seleccionada no es válida.', 'error');
+        return;
+      }
+
+      const scheduledAtUTC = localDateObj.toISOString();
 
       submitBtn.disabled = true;
       submitBtn.querySelector('span').textContent = 'Guardando...';
@@ -824,13 +956,17 @@
         const res = await fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone, scheduledAt, message })
+          body: JSON.stringify({
+            phone,
+            scheduledAt: scheduledAtUTC,
+            message
+          })
         });
 
         const data = await res.json();
 
         if (res.ok) {
-          showToast('¡Mensaje programado exitosamente!', 'success');
+          showToast('¡Mensaje programado exitosamente a tu hora local!', 'success');
           messageInput.value = '';
           charCount.textContent = '0 caracteres';
           initDateTime();
@@ -848,7 +984,6 @@
 
     refreshBtn.addEventListener('click', loadMessages);
 
-    // Escape HTML helper
     function escapeHtml(text) {
       if (!text) return '';
       return text
@@ -859,7 +994,6 @@
         .replace(/'/g, '&#039;');
     }
 
-    // Cargar mensajes inicial y refrescar cada 10 segundos
     loadMessages();
     setInterval(loadMessages, 10000);
   </script>

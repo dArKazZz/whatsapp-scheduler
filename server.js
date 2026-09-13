@@ -11,7 +11,9 @@ const {
   DisconnectReason,
   BufferJSON,
   initAuthCreds,
-  proto
+  proto,
+  makeCacheableSignalKeyStore,
+  Browsers
 } = require('@whiskeysockets/baileys');
 
 // ==========================================
@@ -34,7 +36,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ==========================================
 // 2. MODELOS DE MONGODB
 // ==========================================
-// Modelo para guardar sesiones de Baileys (credenciales y llaves criptográficas)
 const SessionSchema = new mongoose.Schema(
   {
     _id: { type: String, required: true },
@@ -44,7 +45,6 @@ const SessionSchema = new mongoose.Schema(
 );
 const SessionModel = mongoose.model('Session', SessionSchema);
 
-// Modelo para mensajes programados
 const MessageSchema = new mongoose.Schema(
   {
     phone: { type: String, required: true },
@@ -78,10 +78,6 @@ let isProcessingQueue = false;
 // ==========================================
 // 4. ADAPTADOR AUTH DE BAILEYS EN MONGODB
 // ==========================================
-/**
- * Implementación personalizada de useMongoAuthState para entornos efímeros (como Render).
- * Serializa y deserializa credenciales y llaves usando BufferJSON para preservar Buffers intactos.
- */
 async function useMongoAuthState() {
   const writeData = async (data, key) => {
     try {
@@ -163,20 +159,27 @@ async function connectWhatsApp() {
 
   try {
     const { state, saveCreds } = await useMongoAuthState();
+    const logger = pino({ level: 'silent' });
 
+    // CRÍTICO: makeCacheableSignalKeyStore mantiene las claves en caché de memoria
+    // evitando desincronizaciones criptográficas que provocan "Waiting for this message"
     const sock = makeWASocket({
-      auth: state,
+      auth: {
+        creds: state.creds,
+        keys: makeCacheableSignalKeyStore(state.keys, logger)
+      },
       printQRInTerminal: false,
-      logger: pino({ level: 'silent' }),
-      browser: ['Ubuntu', 'Chrome', '20.0.04']
+      logger,
+      browser: Browsers.macOS('Desktop'),
+      syncFullHistory: false,
+      markOnlineOnConnect: true,
+      generateHighQualityLinkPreview: true
     });
 
     whatsappState.sock = sock;
 
-    // Escucha para guardar credenciales actualizadas
     sock.ev.on('creds.update', saveCreds);
 
-    // Escucha cambios en el estado de conexión
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
@@ -231,10 +234,6 @@ async function connectWhatsApp() {
 // ==========================================
 // 6. COLA SECUENCIAL Y LÓGICA ANTI-BAN
 // ==========================================
-/**
- * Normaliza cualquier formato de número telefónico a formato internacional JID de WhatsApp.
- * Ejemplo: "+54 9 11 1234-5678" -> "5491112345678@s.whatsapp.net"
- */
 function normalizePhone(phone) {
   const cleanPhone = phone.toString().replace(/\D/g, '');
   return `${cleanPhone}@s.whatsapp.net`;
@@ -258,10 +257,35 @@ async function processQueue() {
         throw new Error('WhatsApp no está conectado');
       }
 
-      const jid = normalizePhone(item.phone);
-      console.log(`[Cola] Enviando mensaje a ${item.phone} (JID: ${jid})...`);
+      const cleanPhone = item.phone.toString().replace(/\D/g, '');
+      let targetJid = `${cleanPhone}@s.whatsapp.net`;
 
-      await whatsappState.sock.sendMessage(jid, { text: item.message });
+      // 1. Resolver el JID canónico registrado en WhatsApp
+      try {
+        const [result] = await whatsappState.sock.onWhatsApp(targetJid);
+        if (result && result.exists) {
+          targetJid = result.jid;
+        }
+      } catch (checkErr) {
+        console.warn(`[WhatsApp] No se pudo comprobar existencia de ${cleanPhone}:`, checkErr.message);
+      }
+
+      console.log(`[Cola] Preparando handshake para ${cleanPhone} (JID: ${targetJid})...`);
+
+      // 2. Handshake y suscripción de presencia para calentar el canal E2EE
+      // Esto elimina el problema "Waiting for this message. This may take a while"
+      try {
+        await whatsappState.sock.presenceSubscribe(targetJid);
+        await sleep(500);
+        await whatsappState.sock.sendPresenceUpdate('composing', targetJid);
+        await sleep(1500);
+        await whatsappState.sock.sendPresenceUpdate('paused', targetJid);
+      } catch (presenceErr) {
+        // No bloqueante
+      }
+
+      // 3. Envío del mensaje
+      await whatsappState.sock.sendMessage(targetJid, { text: item.message });
 
       await MessageModel.findByIdAndUpdate(item._id, {
         status: 'ENVIADO',
@@ -279,7 +303,6 @@ async function processQueue() {
       });
     }
 
-    // Retardo humanizado anti-baneo (entre 8 y 20 segundos) antes del próximo envío
     if (messageQueue.length > 0) {
       const delayMs = getRandomDelay(8000, 20000);
       console.log(`[Anti-Ban] Pausando envío por ${(delayMs / 1000).toFixed(1)} segundos para proteger la cuenta...`);
@@ -293,12 +316,10 @@ async function processQueue() {
 // ==========================================
 // 7. PROGRAMADOR DE TAREAS (CRON JOB)
 // ==========================================
-// Se ejecuta cada minuto (* * * * *)
 cron.schedule('* * * * *', async () => {
   try {
     const now = new Date();
 
-    // Busca mensajes pendientes cuya fecha programada sea menor o igual a la actual
     const dueMessages = await MessageModel.find({
       status: 'PENDIENTE',
       scheduledAt: { $lte: now }
@@ -311,12 +332,10 @@ cron.schedule('* * * * *', async () => {
     console.log(`[Cron] Se encontraron ${dueMessages.length} mensaje(s) listos para enviar.`);
 
     for (const msg of dueMessages) {
-      // Marcamos inmediatamente como PROCESANDO para evitar que una ejecución concurrente lo tome
       await MessageModel.findByIdAndUpdate(msg._id, { status: 'PROCESANDO' });
       messageQueue.push(msg);
     }
 
-    // Iniciar procesamiento de cola si no está en marcha
     processQueue();
   } catch (err) {
     console.error('[Cron] Error en la ejecución del cron programador:', err.message);
@@ -326,13 +345,10 @@ cron.schedule('* * * * *', async () => {
 // ==========================================
 // 8. RUTAS DE LA API
 // ==========================================
-
-// Keep-Alive / UptimeRobot
 app.get('/ping', (req, res) => {
   res.status(200).send('PONG');
 });
 
-// Estado de la conexión y QR
 app.get('/api/status', (req, res) => {
   res.json({
     connected: whatsappState.connected,
@@ -340,7 +356,6 @@ app.get('/api/status', (req, res) => {
   });
 });
 
-// Programar un nuevo mensaje
 app.post('/api/messages', async (req, res) => {
   try {
     const { phone, message, scheduledAt } = req.body;
@@ -362,6 +377,7 @@ app.post('/api/messages', async (req, res) => {
       return res.status(400).json({ error: 'Debe especificar una fecha y hora programada.' });
     }
 
+    // scheduledAt viene en formato ISO estándar desde el frontend con su UTC correcto
     const scheduleDate = new Date(scheduledAt);
     if (isNaN(scheduleDate.getTime())) {
       return res.status(400).json({ error: 'Formato de fecha inválido.' });
@@ -374,7 +390,7 @@ app.post('/api/messages', async (req, res) => {
       status: 'PENDIENTE'
     });
 
-    // Si la fecha programada es inmediata o ya pasó, encolar de inmediato
+    // Si la fecha programada es inmediata o menor al instante actual, procesar de inmediato
     if (scheduleDate <= new Date()) {
       await MessageModel.findByIdAndUpdate(newMessage._id, { status: 'PROCESANDO' });
       newMessage.status = 'PROCESANDO';
@@ -393,7 +409,6 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
-// Listado de los últimos 100 mensajes
 app.get('/api/messages', async (req, res) => {
   try {
     const messages = await MessageModel.find()
@@ -411,12 +426,10 @@ app.get('/api/messages', async (req, res) => {
   }
 });
 
-// Cancelar / Eliminar mensaje programado
 app.delete('/api/messages/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Si está en la cola en memoria, lo removemos
     const queueIndex = messageQueue.findIndex((item) => item._id.toString() === id);
     if (queueIndex !== -1) {
       messageQueue.splice(queueIndex, 1);
@@ -438,7 +451,6 @@ app.delete('/api/messages/:id', async (req, res) => {
   }
 });
 
-// Ruta catch-all para SPA
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -460,7 +472,6 @@ async function startServer() {
     await mongoose.connect(MONGO_URI);
     console.log('\x1b[32m[MongoDB] Conexión exitosa a la base de datos!\x1b[0m');
 
-    // Iniciar conexión con WhatsApp una vez que Mongo está listo
     connectWhatsApp();
 
     app.listen(PORT, () => {
