@@ -35,9 +35,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Cachés en memoria para reintentos y almacenamiento de mensajes
-// Vitales para resolver "Waiting for this message. This may take a while"
 const msgRetryCounterCache = new NodeCache();
-const sentMessagesCache = new NodeCache({ stdTTL: 86400 }); // Retención de 24 horas
+const sentMessagesCache = new NodeCache({ stdTTL: 86400 }); // 24 horas de retención
 
 // ==========================================
 // 2. MODELOS DE MONGODB
@@ -62,6 +61,7 @@ const MessageSchema = new mongoose.Schema(
       default: 'PENDIENTE'
     },
     messageId: { type: String },
+    targetJid: { type: String },
     sentAt: { type: Date },
     error: { type: String }
   },
@@ -180,9 +180,7 @@ async function connectWhatsApp() {
       markOnlineOnConnect: true,
       generateHighQualityLinkPreview: true,
       msgRetryCounterCache,
-      // IMPLEMENTACIÓN CRÍTICA DE getMessage:
-      // Permite responder a los pedidos de reintento (retryRequest) del destinatario
-      // cuando su teléfono solicita re-encriptar el mensaje con la nueva sesión.
+      // Handler para responder peticiones de reintento de descifrado
       getMessage: async (key) => {
         try {
           if (key && key.id) {
@@ -195,7 +193,7 @@ async function connectWhatsApp() {
             }
           }
         } catch (e) {
-          console.warn('[Baileys] getMessage error:', e.message);
+          console.warn('[Baileys] Error en getMessage:', e.message);
         }
         return undefined;
       }
@@ -280,22 +278,30 @@ async function processQueue() {
       const cleanPhone = item.phone.toString().replace(/\D/g, '');
       let targetJid = `${cleanPhone}@s.whatsapp.net`;
 
-      // 1. Resolver el JID canónico registrado en WhatsApp
+      // 1. RESOLUCIÓN DE IDENTIDAD (LID vs JID):
+      // En WhatsApp moderno (especialmente usuarios con iPhone/iOS), los clientes
+      // requieren que el mensaje esté dirigido a su identificador @lid para poder descifrarlo.
+      // Si se envía a @s.whatsapp.net a un iPhone con LID, queda congelado en "Waiting for this message".
       try {
-        const [result] = await whatsappState.sock.onWhatsApp(targetJid);
+        const [result] = await whatsappState.sock.onWhatsApp(cleanPhone);
         if (result && result.exists) {
-          targetJid = result.jid;
+          if (result.lid && result.lid.includes('@lid')) {
+            console.log(`[WhatsApp] Destinatario iOS/LID detectado: enviando a ${result.lid} (teléfono: +${cleanPhone})`);
+            targetJid = result.lid;
+          } else if (result.jid) {
+            targetJid = result.jid;
+          }
         }
       } catch (checkErr) {
-        console.warn(`[WhatsApp] No se pudo verificar existencia de ${cleanPhone}:`, checkErr.message);
+        console.warn(`[WhatsApp] Error resolviendo JID/LID para ${cleanPhone}:`, checkErr.message);
       }
 
-      console.log(`[Cola] Preparando envío para ${cleanPhone} (JID: ${targetJid})...`);
+      console.log(`[Cola] Iniciando handshake criptográfico con ${targetJid}...`);
 
-      // 2. Suscripción y simulación de presencia para sincronizar la llave con el receptor
+      // 2. Suscripción y simulación de presencia para sincronizar la clave con el dispositivo
       try {
         await whatsappState.sock.presenceSubscribe(targetJid);
-        await sleep(600);
+        await sleep(500);
         await whatsappState.sock.sendPresenceUpdate('composing', targetJid);
         await sleep(1500);
         await whatsappState.sock.sendPresenceUpdate('paused', targetJid);
@@ -306,7 +312,6 @@ async function processQueue() {
       // 3. Envío del mensaje
       const sent = await whatsappState.sock.sendMessage(targetJid, { text: item.message });
 
-      // Guardar en caché y en BD el ID del mensaje para reintentos de desencriptación
       const msgId = sent?.key?.id;
       if (msgId && sent.message) {
         sentMessagesCache.set(msgId, sent.message);
@@ -316,10 +321,11 @@ async function processQueue() {
         status: 'ENVIADO',
         sentAt: new Date(),
         messageId: msgId || null,
+        targetJid: targetJid,
         error: null
       });
 
-      console.log(`\x1b[32m[Cola] Mensaje ID ${item._id} enviado con éxito a ${item.phone} (MsgID: ${msgId})\x1b[0m`);
+      console.log(`\x1b[32m[Cola] Mensaje ID ${item._id} enviado con éxito a ${item.phone} (Destino: ${targetJid}, MsgID: ${msgId})\x1b[0m`);
     } catch (err) {
       console.error(`\x1b[31m[Cola] Error al enviar mensaje ID ${item._id} a ${item.phone}:\x1b[0m`, err.message);
 
