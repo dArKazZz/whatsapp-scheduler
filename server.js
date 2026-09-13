@@ -61,7 +61,6 @@ const MessageSchema = new mongoose.Schema(
       default: 'PENDIENTE'
     },
     messageId: { type: String },
-    targetJid: { type: String },
     sentAt: { type: Date },
     error: { type: String }
   },
@@ -180,7 +179,6 @@ async function connectWhatsApp() {
       markOnlineOnConnect: true,
       generateHighQualityLinkPreview: true,
       msgRetryCounterCache,
-      // Handler para responder peticiones de reintento de descifrado
       getMessage: async (key) => {
         try {
           if (key && key.id) {
@@ -276,40 +274,23 @@ async function processQueue() {
       }
 
       const cleanPhone = item.phone.toString().replace(/\D/g, '');
-      let targetJid = `${cleanPhone}@s.whatsapp.net`;
+      // Enviar siempre a @s.whatsapp.net para compatibilidad total con WhatsApp Web y móviles
+      const targetJid = `${cleanPhone}@s.whatsapp.net`;
 
-      // 1. RESOLUCIÓN DE IDENTIDAD (LID vs JID):
-      // En WhatsApp moderno (especialmente usuarios con iPhone/iOS), los clientes
-      // requieren que el mensaje esté dirigido a su identificador @lid para poder descifrarlo.
-      // Si se envía a @s.whatsapp.net a un iPhone con LID, queda congelado en "Waiting for this message".
-      try {
-        const [result] = await whatsappState.sock.onWhatsApp(cleanPhone);
-        if (result && result.exists) {
-          if (result.lid && result.lid.includes('@lid')) {
-            console.log(`[WhatsApp] Destinatario iOS/LID detectado: enviando a ${result.lid} (teléfono: +${cleanPhone})`);
-            targetJid = result.lid;
-          } else if (result.jid) {
-            targetJid = result.jid;
-          }
-        }
-      } catch (checkErr) {
-        console.warn(`[WhatsApp] Error resolviendo JID/LID para ${cleanPhone}:`, checkErr.message);
-      }
+      console.log(`[Cola] Preparando envío para ${cleanPhone} (JID: ${targetJid})...`);
 
-      console.log(`[Cola] Iniciando handshake criptográfico con ${targetJid}...`);
-
-      // 2. Suscripción y simulación de presencia para sincronizar la clave con el dispositivo
+      // Handshake de presencia previo
       try {
         await whatsappState.sock.presenceSubscribe(targetJid);
         await sleep(500);
         await whatsappState.sock.sendPresenceUpdate('composing', targetJid);
-        await sleep(1500);
+        await sleep(1000);
         await whatsappState.sock.sendPresenceUpdate('paused', targetJid);
       } catch (presenceErr) {
         // No bloqueante
       }
 
-      // 3. Envío del mensaje
+      // Envío del mensaje
       const sent = await whatsappState.sock.sendMessage(targetJid, { text: item.message });
 
       const msgId = sent?.key?.id;
@@ -321,11 +302,10 @@ async function processQueue() {
         status: 'ENVIADO',
         sentAt: new Date(),
         messageId: msgId || null,
-        targetJid: targetJid,
         error: null
       });
 
-      console.log(`\x1b[32m[Cola] Mensaje ID ${item._id} enviado con éxito a ${item.phone} (Destino: ${targetJid}, MsgID: ${msgId})\x1b[0m`);
+      console.log(`\x1b[32m[Cola] Mensaje ID ${item._id} enviado con éxito a ${item.phone} (MsgID: ${msgId})\x1b[0m`);
     } catch (err) {
       console.error(`\x1b[31m[Cola] Error al enviar mensaje ID ${item._id} a ${item.phone}:\x1b[0m`, err.message);
 
