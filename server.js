@@ -15,7 +15,8 @@ const {
   proto,
   makeCacheableSignalKeyStore,
   Browsers,
-  generateMessageIDV2
+  generateMessageIDV2,
+  generateWAMessage
 } = require('@whiskeysockets/baileys');
 
 // ==========================================
@@ -200,7 +201,16 @@ async function connectWhatsApp() {
             const doc = await MessageModel.findOne({ messageId: key.id });
             if (doc && doc.message) {
               addLog(`[Baileys] getMessage: respondiendo retry para ID ${key.id} desde base de datos`);
-              return proto.Message.fromObject({ conversation: doc.message });
+              const cleanPhone = doc.phone.toString().replace(/\D/g, '');
+              const targetJid = `${cleanPhone}@s.whatsapp.net`;
+              const fullMsg = await generateWAMessage(targetJid, { text: doc.message }, {
+                userJid: whatsappState.sock?.user?.id,
+                messageId: key.id
+              });
+              const msg = fullMsg.message;
+              msg._targetJid = targetJid;
+              sentMessagesCache.set(key.id, msg);
+              return msg;
             }
           }
         } catch (e) {
@@ -314,8 +324,13 @@ async function processQueue() {
       }
 
       // 2. Pre-generación de ID y precarga en caché
-      const messageId = generateMessageIDV2();
-      const protoMsg = proto.Message.fromObject({ conversation: item.message });
+      const messageId = generateMessageIDV2(whatsappState.sock.user?.id);
+      const fullMsg = await generateWAMessage(targetJid, { text: item.message }, {
+        userJid: whatsappState.sock.user?.id,
+        messageId
+      });
+      const protoMsg = fullMsg.message;
+      protoMsg._targetJid = targetJid;
       sentMessagesCache.set(messageId, protoMsg);
 
       await MessageModel.findByIdAndUpdate(item._id, {
