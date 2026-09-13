@@ -14,18 +14,26 @@ const {
   initAuthCreds,
   proto,
   makeCacheableSignalKeyStore,
-  Browsers
+  Browsers,
+  generateMessageIDV2
 } = require('@whiskeysockets/baileys');
 
 // ==========================================
-// 1. CONFIGURACIÓN Y VALIDACIONES
+// 1. CONFIGURACIÓN Y BUFFER DE LOGS
 // ==========================================
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
 
+const recentLogs = [];
+function addLog(msg) {
+  const line = `[${new Date().toISOString()}] ${msg}`;
+  console.log(line);
+  recentLogs.push(line);
+  if (recentLogs.length > 60) recentLogs.shift();
+}
+
 if (!MONGO_URI) {
   console.error('\x1b[31m[ERROR CRÍTICO]\x1b[0m MONGO_URI no está definida en las variables de entorno.');
-  console.error('Por favor, configure MONGO_URI en su archivo .env o en el panel de Render.');
 }
 
 const app = express();
@@ -179,19 +187,24 @@ async function connectWhatsApp() {
       markOnlineOnConnect: true,
       generateHighQualityLinkPreview: true,
       msgRetryCounterCache,
+      // Implementación robusta de getMessage para responder reintentos de descifrado
       getMessage: async (key) => {
         try {
           if (key && key.id) {
             const cached = sentMessagesCache.get(key.id);
-            if (cached) return cached;
+            if (cached) {
+              addLog(`[Baileys] getMessage: respondiendo retry para ID ${key.id} desde caché`);
+              return cached;
+            }
 
             const doc = await MessageModel.findOne({ messageId: key.id });
             if (doc && doc.message) {
-              return { conversation: doc.message };
+              addLog(`[Baileys] getMessage: respondiendo retry para ID ${key.id} desde MongoDB`);
+              return proto.Message.fromObject({ conversation: doc.message });
             }
           }
         } catch (e) {
-          console.warn('[Baileys] Error en getMessage:', e.message);
+          addLog(`[Baileys] Error en getMessage: ${e.message}`);
         }
         return undefined;
       }
@@ -208,9 +221,9 @@ async function connectWhatsApp() {
         try {
           whatsappState.qr = await QRCode.toDataURL(qr);
           whatsappState.connected = false;
-          console.log('[WhatsApp] Nuevo código QR generado para escaneo.');
+          addLog('[WhatsApp] Nuevo código QR generado para escaneo.');
         } catch (err) {
-          console.error('[WhatsApp] Error convirtiendo QR a Base64:', err.message);
+          addLog(`[WhatsApp] Error convirtiendo QR a Base64: ${err.message}`);
         }
       }
 
@@ -218,7 +231,7 @@ async function connectWhatsApp() {
         whatsappState.connected = true;
         whatsappState.qr = null;
         whatsappState.isReconnecting = false;
-        console.log('\x1b[32m[WhatsApp] Conexión establecida con éxito!\x1b[0m');
+        addLog('[WhatsApp] Conexión establecida con éxito!');
       }
 
       if (connection === 'close') {
@@ -226,27 +239,27 @@ async function connectWhatsApp() {
         const statusCode = lastDisconnect?.error?.output?.statusCode;
         const isLoggedOut = statusCode === DisconnectReason.loggedOut;
 
-        console.log(`[WhatsApp] Conexión cerrada. Código: ${statusCode}, loggedOut: ${isLoggedOut}`);
+        addLog(`[WhatsApp] Conexión cerrada. Código: ${statusCode}, loggedOut: ${isLoggedOut}`);
 
         if (isLoggedOut) {
-          console.log('[WhatsApp] Sesión desvinculada por el usuario. Limpiando credenciales en MongoDB...');
+          addLog('[WhatsApp] Sesión desvinculada por el usuario. Limpiando credenciales...');
           try {
             await SessionModel.deleteMany({});
             whatsappState.qr = null;
           } catch (err) {
-            console.error('[WhatsApp] Error limpiando sesión en MongoDB:', err.message);
+            addLog(`[WhatsApp] Error limpiando sesión: ${err.message}`);
           }
           whatsappState.isReconnecting = false;
           setTimeout(connectWhatsApp, 2000);
         } else {
           whatsappState.isReconnecting = false;
-          console.log('[WhatsApp] Desconexión temporal. Reintentando conexión en 5 segundos...');
+          addLog('[WhatsApp] Desconexión temporal. Reintentando en 5 segundos...');
           setTimeout(connectWhatsApp, 5000);
         }
       }
     });
   } catch (error) {
-    console.error('[WhatsApp] Error durante la inicialización del socket:', error);
+    addLog(`[WhatsApp] Error inicializando socket: ${error.message}`);
     whatsappState.isReconnecting = false;
     setTimeout(connectWhatsApp, 5000);
   }
@@ -274,12 +287,11 @@ async function processQueue() {
       }
 
       const cleanPhone = item.phone.toString().replace(/\D/g, '');
-      // Enviar siempre a @s.whatsapp.net para compatibilidad total con WhatsApp Web y móviles
       const targetJid = `${cleanPhone}@s.whatsapp.net`;
 
-      console.log(`[Cola] Preparando envío para ${cleanPhone} (JID: ${targetJid})...`);
+      addLog(`[Cola] Preparando envío para ${cleanPhone}...`);
 
-      // Handshake de presencia previo
+      // 1. Handshake previo de presencia
       try {
         await whatsappState.sock.presenceSubscribe(targetJid);
         await sleep(500);
@@ -290,24 +302,29 @@ async function processQueue() {
         // No bloqueante
       }
 
-      // Envío del mensaje
-      const sent = await whatsappState.sock.sendMessage(targetJid, { text: item.message });
+      // 2. Pre-generar messageId y pre-guardar en caché ANTES de enviar
+      // Esto asegura que si el destinatario envía un retryRequest de inmediato,
+      // getMessage ya tiene el contenido listo para re-entregar.
+      const messageId = generateMessageIDV2();
+      const protoMsg = proto.Message.fromObject({ conversation: item.message });
+      sentMessagesCache.set(messageId, protoMsg);
 
-      const msgId = sent?.key?.id;
-      if (msgId && sent.message) {
-        sentMessagesCache.set(msgId, sent.message);
-      }
+      await MessageModel.findByIdAndUpdate(item._id, {
+        messageId: messageId
+      });
+
+      // 3. Enviar mensaje con messageId pre-asignado
+      await whatsappState.sock.sendMessage(targetJid, { text: item.message }, { messageId });
 
       await MessageModel.findByIdAndUpdate(item._id, {
         status: 'ENVIADO',
         sentAt: new Date(),
-        messageId: msgId || null,
         error: null
       });
 
-      console.log(`\x1b[32m[Cola] Mensaje ID ${item._id} enviado con éxito a ${item.phone} (MsgID: ${msgId})\x1b[0m`);
+      addLog(`[Cola] Mensaje ID ${item._id} enviado con éxito a +${item.phone} (MsgID: ${messageId})`);
     } catch (err) {
-      console.error(`\x1b[31m[Cola] Error al enviar mensaje ID ${item._id} a ${item.phone}:\x1b[0m`, err.message);
+      addLog(`[Cola] Error al enviar mensaje ID ${item._id} a ${item.phone}: ${err.message}`);
 
       await MessageModel.findByIdAndUpdate(item._id, {
         status: 'ERROR',
@@ -317,7 +334,7 @@ async function processQueue() {
 
     if (messageQueue.length > 0) {
       const delayMs = getRandomDelay(8000, 20000);
-      console.log(`[Anti-Ban] Pausando envío por ${(delayMs / 1000).toFixed(1)} segundos para proteger la cuenta...`);
+      addLog(`[Anti-Ban] Pausando por ${(delayMs / 1000).toFixed(1)}s para proteger la cuenta...`);
       await sleep(delayMs);
     }
   }
@@ -337,11 +354,9 @@ cron.schedule('* * * * *', async () => {
       scheduledAt: { $lte: now }
     });
 
-    if (dueMessages.length === 0) {
-      return;
-    }
+    if (dueMessages.length === 0) return;
 
-    console.log(`[Cron] Se encontraron ${dueMessages.length} mensaje(s) listos para enviar.`);
+    addLog(`[Cron] Se encontraron ${dueMessages.length} mensaje(s) listos para enviar.`);
 
     for (const msg of dueMessages) {
       await MessageModel.findByIdAndUpdate(msg._id, { status: 'PROCESANDO' });
@@ -350,7 +365,7 @@ cron.schedule('* * * * *', async () => {
 
     processQueue();
   } catch (err) {
-    console.error('[Cron] Error en la ejecución del cron programador:', err.message);
+    addLog(`[Cron] Error en ejecución cron: ${err.message}`);
   }
 });
 
@@ -365,6 +380,16 @@ app.get('/api/status', (req, res) => {
   res.json({
     connected: whatsappState.connected,
     qr: whatsappState.qr
+  });
+});
+
+// Endpoint de diagnóstico en vivo
+app.get('/api/logs', (req, res) => {
+  res.json({
+    connected: whatsappState.connected,
+    queueLength: messageQueue.length,
+    uptimeSeconds: Math.floor(process.uptime()),
+    logs: recentLogs
   });
 });
 
@@ -414,7 +439,7 @@ app.post('/api/messages', async (req, res) => {
       data: newMessage
     });
   } catch (err) {
-    console.error('[API] Error al crear mensaje programado:', err.message);
+    addLog(`[API] Error al crear mensaje: ${err.message}`);
     res.status(500).json({ error: 'Error interno al guardar el mensaje programado.' });
   }
 });
@@ -431,7 +456,6 @@ app.get('/api/messages', async (req, res) => {
       data: messages
     });
   } catch (err) {
-    console.error('[API] Error al obtener mensajes:', err.message);
     res.status(500).json({ error: 'Error al consultar el historial de mensajes.' });
   }
 });
@@ -456,7 +480,6 @@ app.delete('/api/messages/:id', async (req, res) => {
       message: 'Mensaje cancelado y eliminado con éxito.'
     });
   } catch (err) {
-    console.error('[API] Error al eliminar mensaje:', err.message);
     res.status(500).json({ error: 'Error interno al cancelar el mensaje.' });
   }
 });
@@ -478,18 +501,17 @@ async function startServer() {
   }
 
   try {
-    console.log('[MongoDB] Conectando a MongoDB Atlas...');
+    addLog('[MongoDB] Conectando a MongoDB Atlas...');
     await mongoose.connect(MONGO_URI);
-    console.log('\x1b[32m[MongoDB] Conexión exitosa a la base de datos!\x1b[0m');
+    addLog('[MongoDB] Conexión exitosa a la base de datos!');
 
     connectWhatsApp();
 
     app.listen(PORT, () => {
-      console.log(`\x1b[32m[Servidor] Servidor ejecutándose exitosamente en el puerto ${PORT}\x1b[0m`);
-      console.log(`[Servidor] Panel de control: http://localhost:${PORT}`);
+      addLog(`[Servidor] Servidor ejecutándose exitosamente en el puerto ${PORT}`);
     });
   } catch (err) {
-    console.error('\x1b[31m[MongoDB] Error crítico de conexión a MongoDB:\x1b[0m', err.message);
+    addLog(`[MongoDB] Error crítico de conexión a MongoDB: ${err.message}`);
     process.exit(1);
   }
 }
