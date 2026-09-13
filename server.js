@@ -1,4 +1,10 @@
 require('dotenv').config();
+try {
+  const patchBaileys = require('./scripts/patch-baileys');
+  patchBaileys();
+} catch (e) {
+  console.error('[Startup] Error invoking patchBaileys:', e.message);
+}
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -32,6 +38,7 @@ function addLog(msg) {
   recentLogs.push(line);
   if (recentLogs.length > 80) recentLogs.shift();
 }
+global.__whatsappAddLog = addLog;
 
 if (!MONGO_URI) {
   console.error('\x1b[31m[ERROR CRÍTICO]\x1b[0m MONGO_URI no está definida en las variables de entorno.');
@@ -414,6 +421,34 @@ app.get('/api/logs', (req, res) => {
     uptimeSeconds: Math.floor(process.uptime()),
     logs: recentLogs
   });
+});
+
+app.get('/api/debug', async (req, res) => {
+  try {
+    const fs = require('fs');
+    const patchFile = path.join(__dirname, 'node_modules/@whiskeysockets/baileys/lib/Socket/messages-recv.js');
+    let patchStatus = 'NOT_FOUND';
+    if (fs.existsSync(patchFile)) {
+      const text = fs.readFileSync(patchFile, 'utf8');
+      if (text.includes('PATCHED_SEND_MESSAGES_AGAIN_V2')) {
+        patchStatus = 'PATCHED_V2_ACTIVE';
+      } else if (text.includes('PATCHED_SEND_MESSAGES_AGAIN')) {
+        patchStatus = 'PATCHED_V1_ACTIVE';
+      } else {
+        patchStatus = 'UNPATCHED_ORIGINAL';
+      }
+    }
+    const sessions = await SessionModel.find({ _id: /^session-/ }).select('_id');
+    res.json({
+      patchStatus,
+      connected: whatsappState.connected,
+      user: whatsappState.sock?.user,
+      sessionsCount: sessions.length,
+      sessions: sessions.map(s => s._id)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.post('/api/messages', async (req, res) => {
