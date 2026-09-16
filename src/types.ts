@@ -16,6 +16,7 @@ export interface MessageItem {
   messageId?: string | null;
   error?: string | null;
   sentAt?: string | null;
+  senderPhone?: string | null;
   attachment?: AttachmentItem | null;
   createdAt: string;
   updatedAt: string;
@@ -23,6 +24,7 @@ export interface MessageItem {
 
 export interface WhatsAppUser {
   id: string;
+  phone?: string;
   name?: string;
   lid?: string;
 }
@@ -32,6 +34,14 @@ export interface WhatsAppStatus {
   qr: string | null;
   user?: WhatsAppUser | null;
   lastPing?: string;
+}
+
+export interface ChatItem {
+  phone: string;
+  name?: string;
+  lastMessage?: string;
+  timestamp?: string | Date;
+  senderPhone?: string;
 }
 
 export interface StatsSummary {

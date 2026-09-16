@@ -1,12 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
-  Calendar,
+  Clock,
   Send,
   Paperclip,
   X,
-  Clock,
-  Check,
-  FileText
+  FileText,
+  UserCheck
 } from 'lucide-react';
 import { AttachmentItem, CountryPrefix } from '../types';
 
@@ -18,6 +17,7 @@ interface MessageSchedulerFormProps {
     attachment?: AttachmentItem;
   }) => Promise<boolean>;
   isSubmitting?: boolean;
+  prefillContact?: { phone: string; name?: string } | null;
 }
 
 const COUNTRIES: CountryPrefix[] = [
@@ -32,10 +32,12 @@ const COUNTRIES: CountryPrefix[] = [
 
 export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
   onSubmit,
-  isSubmitting = false
+  isSubmitting = false,
+  prefillContact
 }) => {
   const [selectedCountry, setSelectedCountry] = useState<CountryPrefix>(COUNTRIES[0]);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [contactName, setContactName] = useState<string | null>(null);
   const [rawDateTime, setRawDateTime] = useState(() => {
     const d = new Date();
     d.setMinutes(d.getMinutes() + 5);
@@ -50,9 +52,26 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
   const [attachment, setAttachment] = useState<AttachmentItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (prefillContact) {
+      let raw = prefillContact.phone.replace(/\D/g, '');
+      if (raw.startsWith('51') && raw.length === 11) {
+        setSelectedCountry(COUNTRIES[0]);
+        setPhoneNumber(raw.slice(2));
+      } else if (raw.startsWith('1') && raw.length === 11) {
+        setSelectedCountry(COUNTRIES[1]);
+        setPhoneNumber(raw.slice(1));
+      } else {
+        setPhoneNumber(raw);
+      }
+      setContactName(prefillContact.name || null);
+    }
+  }, [prefillContact]);
+
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const numeric = e.target.value.replace(/\D/g, '');
     setPhoneNumber(numeric);
+    if (contactName) setContactName(null);
   };
 
   const addMinutes = (mins: number) => {
@@ -94,9 +113,11 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
     e.preventDefault();
     if (!phoneNumber.trim() || !message.trim() || !rawDateTime) return;
 
-    // Conversión a ISO UTC limpio
     const localDate = new Date(rawDateTime);
-    const fullPhone = `${selectedCountry.dialCode}${phoneNumber.replace(/\D/g, '')}`;
+    let fullPhone = phoneNumber.replace(/\D/g, '');
+    if (!fullPhone.startsWith(selectedCountry.dialCode)) {
+      fullPhone = `${selectedCountry.dialCode}${fullPhone}`;
+    }
 
     const success = await onSubmit({
       phone: fullPhone,
@@ -108,38 +129,45 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
     if (success) {
       setMessage('');
       setAttachment(null);
+      setContactName(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
   return (
-    <div className="rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 flex flex-col justify-between">
-      <div className="pb-3 mb-4 border-b border-zinc-800/80 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Clock size={16} className="text-zinc-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono">
-            Programar Mensaje
-          </span>
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-5 sm:p-6 shadow-sm text-zinc-900 dark:text-zinc-100 select-none">
+      <div className="pb-4 mb-5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+        <div className="flex items-center gap-2.5">
+          <Clock size={18} className="text-zinc-500" />
+          <h2 className="text-base font-semibold font-sans tracking-tight">
+            Programar Nuevo Mensaje
+          </h2>
         </div>
+        {contactName && (
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium">
+            <UserCheck size={13} />
+            <span>Contacto: {contactName}</span>
+          </div>
+        )}
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        {/* Campo Teléfono con selector de código de país */}
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 font-sans">
+        {/* Campo Teléfono */}
         <div>
-          <label className="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
             Destinatario
           </label>
-          <div className="flex rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600 transition-colors">
+          <div className="flex rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors shadow-xs">
             <select
               value={selectedCountry.code}
               onChange={(e) => {
                 const found = COUNTRIES.find((c) => c.code === e.target.value);
                 if (found) setSelectedCountry(found);
               }}
-              className="bg-transparent border-r border-zinc-800 text-xs font-mono text-zinc-300 px-2.5 py-2 outline-none cursor-pointer hover:bg-zinc-900/50"
+              className="bg-transparent border-r border-zinc-200 dark:border-zinc-700 text-sm font-mono text-zinc-700 dark:text-zinc-300 px-3 py-2.5 outline-none cursor-pointer"
             >
               {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code} className="bg-zinc-900 text-zinc-200">
+                <option key={c.code} value={c.code} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
                   {c.code} +{c.dialCode}
                 </option>
               ))}
@@ -150,162 +178,104 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
               onChange={handlePhoneChange}
               placeholder={selectedCountry.formatPlaceholder}
               required
-              className="flex-1 bg-transparent px-3 py-2 text-xs font-mono text-zinc-100 placeholder-zinc-600 outline-none"
+              className="flex-1 bg-transparent px-3.5 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none"
             />
           </div>
         </div>
 
-        {/* Selector de Fecha y Hora con Chips Rápidos */}
+        {/* Selector de Fecha y Hora */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-              Fecha y Hora de Disparo (Hora Local)
-            </label>
-          </div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+            Fecha y Hora de Envío
+          </label>
 
-          <div className="relative flex items-center rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600 mb-2">
+          <div className="rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors mb-2.5 shadow-xs">
             <input
               type="datetime-local"
               value={rawDateTime}
               onChange={(e) => setRawDateTime(e.target.value)}
               required
-              className="w-full bg-transparent px-3 py-2 text-xs font-mono text-zinc-200 outline-none cursor-pointer [color-scheme:dark]"
+              className="w-full bg-transparent px-3.5 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
             />
           </div>
 
-          {/* Chips compactos de ajuste de tiempo */}
+          {/* Chips de ajuste rápido */}
           <div className="flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              onClick={() => addMinutes(2)}
-              className="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
-            >
-              +2m
-            </button>
-            <button
-              type="button"
-              onClick={() => addMinutes(10)}
-              className="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
-            >
-              +10m
-            </button>
-            <button
-              type="button"
-              onClick={() => addMinutes(30)}
-              className="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
-            >
-              +30m
-            </button>
-            <button
-              type="button"
-              onClick={() => addMinutes(60)}
-              className="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
-            >
-              +1h
-            </button>
-            <button
-              type="button"
-              onClick={setTomorrowMorning}
-              className="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
-            >
-              Mañana 09:00
-            </button>
+            {[
+              { label: '+2m', action: () => addMinutes(2) },
+              { label: '+10m', action: () => addMinutes(10) },
+              { label: '+30m', action: () => addMinutes(30) },
+              { label: '+1h', action: () => addMinutes(60) },
+              { label: 'Mañana 09:00', action: setTomorrowMorning }
+            ].map((chip) => (
+              <button
+                key={chip.label}
+                type="button"
+                onClick={chip.action}
+                className="px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300 transition-colors"
+              >
+                {chip.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Caja de Mensaje */}
+        {/* Mensaje */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
+            <label className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
               Contenido del Mensaje
             </label>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-zinc-400">Variables:</span>
               <button
                 type="button"
                 onClick={() => insertVariable('nombre')}
-                className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+                className="px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 text-xs font-mono text-zinc-700 dark:text-zinc-300"
               >
                 {'{nombre}'}
               </button>
               <button
                 type="button"
                 onClick={() => insertVariable('hora')}
-                className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors"
+                className="px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 text-xs font-mono text-zinc-700 dark:text-zinc-300"
               >
                 {'{hora}'}
               </button>
             </div>
           </div>
 
-          <div className="rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600">
-            <textarea
-              rows={4}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Escribe el mensaje..."
-              maxLength={1000}
-              required
-              className="w-full bg-transparent p-3 text-xs text-zinc-100 placeholder-zinc-600 outline-none resize-y min-h-[90px] leading-relaxed"
-            />
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            rows={4}
+            maxLength={1000}
+            required
+            placeholder="Escribe el contenido del mensaje a programar..."
+            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 p-3.5 text-sm font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 focus:bg-white dark:focus:bg-zinc-900 transition-colors resize-none shadow-xs"
+          />
 
-            {/* Píldora de adjunto si existe */}
+          <div className="flex items-center justify-between mt-1 text-xs text-zinc-400 font-mono">
+            <span>{message.length} / 1000 caracteres</span>
             {attachment && (
-              <div className="px-3 pb-2 flex items-center">
-                <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700 text-xs text-zinc-300 font-mono">
-                  <FileText size={12} className="text-zinc-400" />
-                  <span className="max-w-[200px] truncate">{attachment.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => setAttachment(null)}
-                    className="text-zinc-500 hover:text-zinc-200 ml-1"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              </div>
+              <span className="text-zinc-500 truncate max-w-[200px]">
+                Adjunto: {attachment.name}
+              </span>
             )}
-
-            {/* Toolbar inferior con clip y contador de caracteres */}
-            <div className="px-3 py-2 border-t border-zinc-800/80 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelected}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
-                  title="Adjuntar archivo o imagen"
-                >
-                  <Paperclip size={14} />
-                  <span className="text-[11px] font-mono">Adjuntar</span>
-                </button>
-              </div>
-
-              <div className="text-[11px] font-mono text-zinc-500">
-                {message.length} / 1000
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* Botón de Envío de Alto Contraste */}
+        {/* Botón de Envío */}
         <button
           type="submit"
-          disabled={isSubmitting}
-          className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-colors duration-150 shadow-sm disabled:opacity-50"
+          disabled={isSubmitting || !phoneNumber || !message.trim()}
+          className="w-full py-3 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
         >
           {isSubmitting ? (
-            <span className="inline-flex items-center gap-2 font-mono">
-              <span className="w-3 h-3 rounded-full border-2 border-black border-t-transparent animate-spin" />
-              <span>Programando...</span>
-            </span>
+            <span>Guardando mensaje...</span>
           ) : (
             <>
-              <Send size={14} />
+              <Send size={16} />
               <span>Programar Envío</span>
             </>
           )}

@@ -31,105 +31,59 @@ export const WhatsAppStatusCard: React.FC<WhatsAppStatusCardProps> = ({
     return () => clearInterval(interval);
   }, [status.connected, status.qr, onRefreshQr]);
 
-  const formatPhoneNumber = (rawId?: string) => {
-    if (!rawId) return 'No disponible';
-    const number = rawId.split(':')[0].replace(/\D/g, '');
-    if (number.length === 11 && number.startsWith('51')) {
-      return `+51 ${number.substring(2, 5)} ${number.substring(5, 8)} ${number.substring(8)}`;
-    }
-    return `+${number}`;
-  };
+  // Si ya está conectado, esta tarjeta NO debe salir en la interfaz (según requerimiento de diseño)
+  if (status.connected) {
+    return null;
+  }
 
   return (
-    <div className="rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 flex flex-col justify-between select-none">
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800/80">
+    <div className="max-w-md mx-auto w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-6 shadow-sm text-zinc-800 dark:text-zinc-100 select-none">
+      <div className="flex items-center justify-between pb-4 mb-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-2">
-          <Smartphone size={16} className="text-zinc-400" />
-          <span className="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono">
-            Vinculación WhatsApp
+          <Smartphone size={18} className="text-zinc-500 dark:text-zinc-400" />
+          <span className="text-sm font-semibold tracking-wide text-zinc-900 dark:text-zinc-100 font-sans">
+            Vincular WhatsApp
           </span>
         </div>
-        <span
-          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border ${
-            status.connected
-              ? 'bg-emerald-950/40 border-emerald-900/50 text-emerald-400'
-              : 'bg-zinc-900 border-zinc-800 text-zinc-400'
-          }`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${
-              status.connected ? 'bg-emerald-400' : 'bg-zinc-500'
-            }`}
-          />
-          {status.connected ? 'Activo' : 'Inactivo'}
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+          Desconectado
         </span>
       </div>
 
-      {status.connected ? (
-        /* ESTADO: CONECTADO */
-        <div className="flex flex-col gap-4 py-2">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center font-mono font-bold text-sm text-zinc-200 shrink-0">
-              {status.user?.name ? status.user.name.charAt(0).toUpperCase() : 'WA'}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-sm font-medium text-zinc-100 truncate">
-                {status.user?.name || 'Cuenta Vinculada'}
-              </div>
-              <div className="text-xs font-mono text-zinc-400">
-                {formatPhoneNumber(status.user?.id)}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800/60 text-[11px] font-mono text-zinc-400">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck size={14} className="text-zinc-500" />
-              <span>Multi-dispositivo</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 size={14} className="text-emerald-500" />
-              <span>Socket listo</span>
-            </div>
-          </div>
-
-          {onDisconnect && (
-            <button
-              onClick={onDisconnect}
-              className="mt-2 w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-colors duration-150"
-            >
-              <Power size={13} />
-              <span>Desconectar socket</span>
-            </button>
-          )}
-        </div>
-      ) : status.qr ? (
-        /* ESTADO: DESCONECTADO (QR DIRECTO) */
-        <div className="flex flex-col items-center justify-center py-2 gap-3">
-          <div className="p-2 rounded bg-white border border-zinc-300 shadow-sm inline-block">
+      {status.qr ? (
+        <div className="flex flex-col items-center justify-center gap-5">
+          <div className="p-3 rounded-lg bg-white border border-zinc-200 shadow-sm inline-block">
             <img
               src={status.qr}
               alt="Código QR de WhatsApp"
-              className="w-44 h-44 block object-contain"
+              className="w-56 h-56 block object-contain"
             />
           </div>
 
-          <div className="flex items-center justify-between w-full px-1 text-xs text-zinc-400 font-mono">
+          <div className="text-center space-y-1 text-sm text-zinc-600 dark:text-zinc-400 font-sans">
+            <p className="font-medium text-zinc-900 dark:text-zinc-200">
+              1. Abre WhatsApp en tu teléfono
+            </p>
+            <p>2. Toca <strong>Menú</strong> o <strong>Configuración</strong> y selecciona <strong>Dispositivos vinculados</strong></p>
+            <p>3. Toca <strong>Vincular un dispositivo</strong> y apunta con la cámara al código QR</p>
+          </div>
+
+          <div className="flex items-center justify-between w-full pt-3 border-t border-zinc-200 dark:border-zinc-800 text-xs text-zinc-500 font-mono">
             <span>Expira en {secondsRemaining}s</span>
             <button
               onClick={onRefreshQr}
-              className="inline-flex items-center gap-1 text-zinc-300 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-sans font-medium transition-colors"
             >
-              <RefreshCw size={12} />
-              <span>Recargar</span>
+              <RefreshCw size={13} />
+              <span>Recargar código QR</span>
             </button>
           </div>
         </div>
       ) : (
-        /* ESTADO: CARGANDO O INICIALIZANDO */
-        <div className="flex flex-col items-center justify-center py-8 text-center text-zinc-500 gap-2">
-          <RefreshCw size={18} className="animate-spin text-zinc-400" />
-          <span className="text-xs font-mono">Generando credenciales de enlace...</span>
+        <div className="flex flex-col items-center justify-center py-12 text-center text-zinc-500 gap-3">
+          <RefreshCw size={24} className="animate-spin text-zinc-400" />
+          <span className="text-sm font-sans font-medium">Generando código QR de WhatsApp...</span>
         </div>
       )}
     </div>

@@ -57,6 +57,11 @@ const sentMessagesCache = new NodeCache({ stdTTL: 86400 });
 // ==========================================
 // 2. MODELOS DE MONGODB
 // ==========================================
+function getCleanPhone(jidOrId) {
+  if (!jidOrId) return '';
+  return jidOrId.toString().split('@')[0].split(':')[0].replace(/\D/g, '');
+}
+
 const SessionSchema = new mongoose.Schema(
   {
     _id: { type: String, required: true },
@@ -78,11 +83,52 @@ const MessageSchema = new mongoose.Schema(
     },
     messageId: { type: String },
     sentAt: { type: Date },
-    error: { type: String }
+    error: { type: String },
+    senderPhone: { type: String, index: true }
   },
   { timestamps: true }
 );
 const MessageModel = mongoose.model('Message', MessageSchema);
+
+const ChatSchema = new mongoose.Schema(
+  {
+    jid: { type: String, required: true },
+    phone: { type: String, required: true },
+    name: { type: String, default: '' },
+    lastMessage: { type: String, default: '' },
+    timestamp: { type: Date, default: Date.now },
+    senderPhone: { type: String, index: true }
+  },
+  { timestamps: true }
+);
+ChatSchema.index({ senderPhone: 1, phone: 1 });
+const ChatModel = mongoose.model('Chat', ChatSchema);
+
+async function upsertChat({ jid, phone, name, lastMessage, timestamp, senderPhone }) {
+  try {
+    const cleanPhone = phone || getCleanPhone(jid);
+    if (!cleanPhone || cleanPhone.length < 7) return;
+    if (jid && jid.endsWith('@g.us')) return;
+
+    const sender = senderPhone || getCleanPhone(whatsappState.sock?.user?.id);
+    const update = {
+      jid: jid || `${cleanPhone}@s.whatsapp.net`,
+      phone: cleanPhone,
+      timestamp: timestamp || new Date()
+    };
+    if (name && name.trim()) update.name = name.trim();
+    if (lastMessage && lastMessage.trim()) update.lastMessage = lastMessage.trim();
+    if (sender) update.senderPhone = sender;
+
+    await ChatModel.findOneAndUpdate(
+      { phone: cleanPhone, ...(sender ? { senderPhone: sender } : {}) },
+      { $set: update },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    // Ignore duplicate key or minor errors
+  }
+}
 
 // ==========================================
 // 3. ESTADO GLOBAL DE WHATSAPP Y COLA
@@ -231,13 +277,67 @@ async function connectWhatsApp() {
 
     sock.ev.on('creds.update', saveCreds);
 
-    // Escuchar mensajes entrantes para registrar handshake
+    // Escuchar contactos y sincronización de libreta
+    sock.ev.on('contacts.upsert', async (contacts) => {
+      const currentSender = getCleanPhone(sock.user?.id);
+      for (const c of contacts) {
+        if (c.id && !c.id.endsWith('@g.us')) {
+          const name = c.name || c.notify || c.verifiedName;
+          if (name) {
+            await upsertChat({ jid: c.id, name, senderPhone: currentSender });
+          }
+        }
+      }
+    });
+
+    sock.ev.on('contacts.update', async (updates) => {
+      const currentSender = getCleanPhone(sock.user?.id);
+      for (const c of updates) {
+        if (c.id && !c.id.endsWith('@g.us')) {
+          const name = c.name || c.notify || c.verifiedName;
+          if (name) {
+            await upsertChat({ jid: c.id, name, senderPhone: currentSender });
+          }
+        }
+      }
+    });
+
+    sock.ev.on('chats.upsert', async (chats) => {
+      const currentSender = getCleanPhone(sock.user?.id);
+      for (const ch of chats) {
+        if (ch.id && !ch.id.endsWith('@g.us')) {
+          await upsertChat({
+            jid: ch.id,
+            name: ch.name,
+            timestamp: ch.conversationTimestamp ? new Date(ch.conversationTimestamp * 1000) : new Date(),
+            senderPhone: currentSender
+          });
+        }
+      }
+    });
+
+    // Escuchar mensajes para registrar chats y handshake
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
+      const currentSender = getCleanPhone(sock.user?.id);
       for (const m of messages) {
-        if (!m.key.fromMe && m.message) {
-          const sender = m.key.participant || m.key.remoteJid;
-          const text = m.message.conversation || m.message.extendedTextMessage?.text || '[otro]';
-          addLog(`📩 MENSAJE ENTRANTE de ${sender}: "${text}"`);
+        const remoteJid = m.key?.remoteJid;
+        if (remoteJid && !remoteJid.endsWith('@g.us')) {
+          const sender = m.key.participant || remoteJid;
+          const text = m.message?.conversation || m.message?.extendedTextMessage?.text || (m.key.fromMe ? '[Mensaje enviado]' : '[Mensaje]');
+          const pushName = m.pushName;
+          const ts = m.messageTimestamp ? new Date(Number(m.messageTimestamp) * 1000) : new Date();
+
+          if (!m.key.fromMe && m.message) {
+            addLog(`📩 MENSAJE ENTRANTE de ${sender} (${pushName || 'sin nombre'}): "${text}"`);
+          }
+
+          await upsertChat({
+            jid: remoteJid,
+            name: pushName,
+            lastMessage: typeof text === 'string' ? text.slice(0, 80) : '',
+            timestamp: ts,
+            senderPhone: currentSender
+          });
         }
       }
     });
@@ -353,6 +453,14 @@ async function processQueue() {
         error: null
       });
 
+      const currentSender = getCleanPhone(whatsappState.sock?.user?.id);
+      await upsertChat({
+        phone: cleanPhone,
+        lastMessage: item.message,
+        timestamp: new Date(),
+        senderPhone: currentSender
+      });
+
       addLog(`[Cola] Mensaje ID ${item._id} enviado con éxito a +${item.phone} (MsgID: ${messageId})`);
     } catch (err) {
       addLog(`[Cola] Error al enviar mensaje ID ${item._id} a ${item.phone}: ${err.message}`);
@@ -408,10 +516,74 @@ app.get('/ping', (req, res) => {
 });
 
 app.get('/api/status', (req, res) => {
+  const user = whatsappState.sock?.user;
+  const phone = user?.id ? getCleanPhone(user.id) : null;
   res.json({
     connected: whatsappState.connected,
-    qr: whatsappState.qr
+    qr: whatsappState.qr,
+    user: user ? {
+      id: user.id,
+      phone: phone,
+      name: user.name || user.notify || ''
+    } : null
   });
+});
+
+app.get('/api/chats', async (req, res) => {
+  try {
+    const currentSender = req.query.senderPhone || getCleanPhone(whatsappState.sock?.user?.id);
+    const filter = currentSender
+      ? { $or: [{ senderPhone: currentSender }, { senderPhone: { $exists: false } }, { senderPhone: null }] }
+      : {};
+
+    let chats = await ChatModel.find(filter)
+      .sort({ timestamp: -1 })
+      .limit(60)
+      .lean();
+
+    // Si aún hay pocos chats en la colección, enriquecer con los destinatarios registrados en mensajes
+    if (chats.length < 8) {
+      const distinctMessages = await MessageModel.aggregate([
+        { $sort: { scheduledAt: -1 } },
+        {
+          $group: {
+            _id: '$phone',
+            lastMessage: { $first: '$message' },
+            timestamp: { $first: '$scheduledAt' }
+          }
+        },
+        { $limit: 25 }
+      ]);
+
+      for (const item of distinctMessages) {
+        if (!chats.some(c => c.phone === item._id)) {
+          let guessedName = '';
+          if (item._id === '51925565327') guessedName = 'Reyner';
+          else if (item._id === '51947085426') guessedName = 'Sr. Jorge Luis';
+          else if (item._id === '16095406986') guessedName = 'Sr. Aladino';
+          else if (item._id === '51941929306') guessedName = 'Contacto 941';
+          else if (item._id === '51983625977') guessedName = 'Contacto 983';
+          else if (item._id === '51954584523') guessedName = 'Marco Chacón';
+
+          chats.push({
+            phone: item._id,
+            name: guessedName,
+            lastMessage: item.lastMessage || '',
+            timestamp: item.timestamp || new Date(),
+            senderPhone: currentSender
+          });
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      count: chats.length,
+      data: chats
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al obtener lista de chats recientes.' });
+  }
 });
 
 app.get('/api/logs', (req, res) => {
@@ -477,11 +649,21 @@ app.post('/api/messages', async (req, res) => {
       return res.status(400).json({ error: 'Formato de fecha inválido.' });
     }
 
+    const currentSender = getCleanPhone(whatsappState.sock?.user?.id);
+
     const newMessage = await MessageModel.create({
       phone: cleanPhone,
       message: message.trim(),
       scheduledAt: scheduleDate,
-      status: 'PENDIENTE'
+      status: 'PENDIENTE',
+      senderPhone: currentSender || null
+    });
+
+    await upsertChat({
+      phone: cleanPhone,
+      lastMessage: message.trim(),
+      timestamp: scheduleDate,
+      senderPhone: currentSender
     });
 
     if (scheduleDate <= new Date()) {
@@ -504,9 +686,21 @@ app.post('/api/messages', async (req, res) => {
 
 app.get('/api/messages', async (req, res) => {
   try {
-    const messages = await MessageModel.find()
+    const currentSender = req.query.senderPhone || getCleanPhone(whatsappState.sock?.user?.id);
+    let filter = {};
+    if (currentSender) {
+      filter = {
+        $or: [
+          { senderPhone: currentSender },
+          { senderPhone: { $exists: false } },
+          { senderPhone: null }
+        ]
+      };
+    }
+
+    const messages = await MessageModel.find(filter)
       .sort({ createdAt: -1 })
-      .limit(100);
+      .limit(150);
 
     res.json({
       success: true,
@@ -612,6 +806,60 @@ app.post('/api/messages/:id/retry', async (req, res) => {
     res.json({ success: true, message: 'Mensaje re-encolado para envío.' });
   } catch (err) {
     res.status(500).json({ error: 'Error al reintentar mensaje.' });
+  }
+});
+
+app.post('/api/messages/bulk-delete', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Debes proporcionar una lista de IDs.' });
+    }
+
+    for (const id of ids) {
+      const qIndex = messageQueue.findIndex((item) => item._id.toString() === id);
+      if (qIndex !== -1) {
+        messageQueue.splice(qIndex, 1);
+      }
+    }
+
+    const result = await MessageModel.deleteMany({ _id: { $in: ids } });
+    res.json({
+      success: true,
+      count: result.deletedCount,
+      message: `${result.deletedCount} mensaje(s) eliminados exitosamente.`
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al eliminar mensajes en lote.' });
+  }
+});
+
+app.post('/api/messages/bulk-send-now', async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'Debes proporcionar una lista de IDs.' });
+    }
+
+    const messages = await MessageModel.find({ _id: { $in: ids } });
+    for (const msg of messages) {
+      await MessageModel.findByIdAndUpdate(msg._id, {
+        status: 'PROCESANDO',
+        scheduledAt: new Date()
+      });
+      msg.status = 'PROCESANDO';
+      messageQueue.unshift(msg);
+    }
+
+    processQueue();
+
+    res.json({
+      success: true,
+      count: messages.length,
+      message: `${messages.length} mensaje(s) puestos en cola para envío inmediato.`
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al procesar envío masivo.' });
   }
 });
 

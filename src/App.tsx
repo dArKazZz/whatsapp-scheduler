@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { WhatsAppStatusCard } from './components/WhatsAppStatusCard';
+import { RecentChatsSidebar } from './components/RecentChatsSidebar';
 import { MessageSchedulerForm } from './components/MessageSchedulerForm';
 import { MessageQueueTable } from './components/MessageQueueTable';
-import { WhatsAppStatus, StatsSummary, MessageItem } from './types';
+import { WhatsAppStatus, StatsSummary, MessageItem, ChatItem } from './types';
 
 export const App: React.FC = () => {
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  // Modo claro por defecto
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [status, setStatus] = useState<WhatsAppStatus>({
     connected: false,
     qr: null,
@@ -14,6 +16,10 @@ export const App: React.FC = () => {
     lastPing: undefined
   });
   const [messages, setMessages] = useState<MessageItem[]>([]);
+  const [chats, setChats] = useState<ChatItem[]>([]);
+  const [selectedContact, setSelectedContact] = useState<{ phone: string; name?: string } | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -23,7 +29,7 @@ export const App: React.FC = () => {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
-  // 1. Fetch Status de WhatsApp (/api/status & /api/debug)
+  // 1. Fetch Status de WhatsApp
   const fetchStatus = useCallback(async () => {
     try {
       const startTime = performance.now();
@@ -31,12 +37,14 @@ export const App: React.FC = () => {
       const pingTime = Math.round(performance.now() - startTime);
       const data = await res.json();
 
-      let user = null;
-      try {
-        const debugRes = await fetch('/api/debug');
-        const debugData = await debugRes.json();
-        user = debugData.user || null;
-      } catch (e) {}
+      let user = data.user || null;
+      if (!user) {
+        try {
+          const debugRes = await fetch('/api/debug');
+          const debugData = await debugRes.json();
+          user = debugData.user || null;
+        } catch (e) {}
+      }
 
       setStatus({
         connected: !!data.connected,
@@ -49,7 +57,7 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // 2. Fetch Historial de Mensajes (/api/messages)
+  // 2. Fetch Historial de Mensajes
   const fetchMessages = useCallback(async () => {
     setIsLoadingMessages(true);
     try {
@@ -63,16 +71,28 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  // 3. Fetch Chats y Contactos Recientes
+  const fetchChats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/chats');
+      const json = await res.json();
+      setChats(json.data || []);
+    } catch (e) {}
+  }, []);
+
   useEffect(() => {
     fetchStatus();
     fetchMessages();
+    fetchChats();
     const statusInterval = setInterval(fetchStatus, 4000);
-    const messagesInterval = setInterval(fetchMessages, 10000);
+    const messagesInterval = setInterval(fetchMessages, 8000);
+    const chatsInterval = setInterval(fetchChats, 12000);
     return () => {
       clearInterval(statusInterval);
       clearInterval(messagesInterval);
+      clearInterval(chatsInterval);
     };
-  }, [fetchStatus, fetchMessages]);
+  }, [fetchStatus, fetchMessages, fetchChats]);
 
   // Estadísticas calculadas
   const stats: StatsSummary = {
@@ -107,6 +127,7 @@ export const App: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Error al programar');
       showToast('Mensaje programado exitosamente');
       fetchMessages();
+      fetchChats();
       return true;
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -120,7 +141,39 @@ export const App: React.FC = () => {
     try {
       const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Error al cancelar mensaje');
-      showToast('Mensaje cancelado');
+      showToast('Mensaje eliminado');
+      fetchMessages();
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleBulkDelete = async (ids: string[]) => {
+    try {
+      const res = await fetch('/api/messages/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error en eliminación masiva');
+      showToast(`${json.count || ids.length} mensajes eliminados`);
+      fetchMessages();
+    } catch (err: any) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleBulkSendNow = async (ids: string[]) => {
+    try {
+      const res = await fetch('/api/messages/bulk-send-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Error en envío masivo');
+      showToast(`${json.count || ids.length} mensajes activados para envío`);
       fetchMessages();
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -150,7 +203,7 @@ export const App: React.FC = () => {
         body: JSON.stringify({ scheduledAt: newDateTime })
       });
       if (!res.ok) throw new Error('Error al reprogramar mensaje');
-      showToast('Fecha actualizada');
+      showToast('Fecha reprogramada');
       fetchMessages();
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -172,7 +225,7 @@ export const App: React.FC = () => {
     try {
       const res = await fetch(`/api/messages/${id}/retry`, { method: 'POST' });
       if (!res.ok) throw new Error('Error al reintentar mensaje');
-      showToast('Mensaje devuelto a la cola');
+      showToast('Mensaje re-encolado para envío');
       fetchMessages();
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -191,7 +244,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'dark bg-[#09090b]' : 'bg-zinc-50'} text-zinc-100 flex flex-col font-sans transition-colors duration-150`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'dark bg-[#09090b]' : 'bg-[#f8fafc]'} text-zinc-900 dark:text-zinc-100 flex flex-col font-sans transition-colors duration-150`}>
       {/* Slim Navbar */}
       <Navbar
         status={status}
@@ -201,50 +254,63 @@ export const App: React.FC = () => {
         onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       />
 
-      {/* Main Content Grid */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          {/* Panel Izquierdo: WhatsApp Status Card (4 columnas) */}
-          <div className="lg:col-span-4 flex flex-col">
-            <WhatsAppStatusCard
-              status={status}
-              onRefreshQr={fetchStatus}
-              onDisconnect={handleLogout}
-            />
-          </div>
+      {/* Si NO está conectado: Solo mostrar la pantalla de vincular QR */}
+      {!status.connected ? (
+        <main className="flex-1 flex items-center justify-center p-6">
+          <WhatsAppStatusCard
+            status={status}
+            onRefreshQr={fetchStatus}
+            onDisconnect={handleLogout}
+          />
+        </main>
+      ) : (
+        /* Si ESTÁ conectado: Ocultar la tarjeta de vinculación y mostrar Sidebar de contactos + Formulario + Tabla */
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          {/* Sidebar de Chats Recientes */}
+          <RecentChatsSidebar
+            chats={chats}
+            selectedPhone={selectedContact?.phone}
+            onSelectChat={(chat) => setSelectedContact({ phone: chat.phone, name: chat.name })}
+            isOpen={isSidebarOpen}
+            onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          />
 
-          {/* Panel Derecho: Formulario de Programación (8 columnas) */}
-          <div className="lg:col-span-8 flex flex-col">
+          {/* Área Principal de Contenido */}
+          <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 max-w-6xl">
+            {/* Formulario de Programación */}
             <MessageSchedulerForm
               onSubmit={handleScheduleMessage}
               isSubmitting={isSubmitting}
+              prefillContact={selectedContact}
             />
-          </div>
-        </div>
 
-        {/* Tabla de Cola e Historial */}
-        <section className="w-full">
-          <MessageQueueTable
-            messages={messages}
-            isLoading={isLoadingMessages}
-            onRefresh={fetchMessages}
-            onDelete={handleDeleteMessage}
-            onEditMessage={handleEditMessage}
-            onReschedule={handleReschedule}
-            onSendNow={handleSendNow}
-            onRetry={handleRetry}
-          />
-        </section>
-      </main>
+            {/* Tabla de Mensajes con Bulk Actions */}
+            <section className="w-full">
+              <MessageQueueTable
+                messages={messages}
+                isLoading={isLoadingMessages}
+                onRefresh={fetchMessages}
+                onDelete={handleDeleteMessage}
+                onEditMessage={handleEditMessage}
+                onReschedule={handleReschedule}
+                onSendNow={handleSendNow}
+                onRetry={handleRetry}
+                onBulkDelete={handleBulkDelete}
+                onBulkSendNow={handleBulkSendNow}
+              />
+            </section>
+          </main>
+        </div>
+      )}
 
       {/* Toast Notification Minimalista */}
       {toastMessage && (
         <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
           <div
-            className={`px-3 py-2 rounded text-xs font-mono border shadow-2xl ${
+            className={`px-4 py-2.5 rounded-lg text-xs font-sans font-medium border shadow-lg ${
               toastMessage.type === 'success'
-                ? 'bg-[#121215] border-emerald-800 text-emerald-300'
-                : 'bg-[#121215] border-red-800 text-red-300'
+                ? 'bg-zinc-900 border-zinc-800 text-white dark:bg-white dark:border-zinc-200 dark:text-zinc-900'
+                : 'bg-rose-600 border-rose-700 text-white'
             }`}
           >
             {toastMessage.text}

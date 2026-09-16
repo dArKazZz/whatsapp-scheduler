@@ -12,7 +12,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  FileText
+  Zap,
+  CheckSquare
 } from 'lucide-react';
 import { MessageItem, FilterTab } from '../types';
 
@@ -25,6 +26,8 @@ interface MessageQueueTableProps {
   onReschedule: (id: string, newDateTime: string) => Promise<void>;
   onSendNow: (id: string) => Promise<void>;
   onRetry: (id: string) => Promise<void>;
+  onBulkDelete?: (ids: string[]) => Promise<void>;
+  onBulkSendNow?: (ids: string[]) => Promise<void>;
 }
 
 export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
@@ -35,12 +38,17 @@ export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
   onEditMessage,
   onReschedule,
   onSendNow,
-  onRetry
+  onRetry,
+  onBulkDelete,
+  onBulkSendNow
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // Selección Múltiple (Bulk Actions)
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Estados de Modales y Acciones
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -54,12 +62,10 @@ export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
   // Filtrado de Mensajes
   const filteredMessages = useMemo(() => {
     return messages.filter((msg) => {
-      // Filtro por Tab
       if (activeTab === 'pending' && msg.status !== 'PENDIENTE' && msg.status !== 'PROCESANDO') return false;
       if (activeTab === 'sent' && msg.status !== 'ENVIADO') return false;
       if (activeTab === 'error' && msg.status !== 'ERROR') return false;
 
-      // Filtro por Texto / Teléfono
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         const matchPhone = msg.phone.toLowerCase().includes(query);
@@ -77,7 +83,55 @@ export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
     return filteredMessages.slice(start, start + pageSize);
   }, [filteredMessages, page, pageSize]);
 
-  // Helpers de fecha y hora
+  // Selección en bloque
+  const allVisibleSelected = paginatedMessages.length > 0 && paginatedMessages.every((m) => selectedIds.includes(m._id));
+
+  const handleToggleSelectAll = () => {
+    if (allVisibleSelected) {
+      const visibleIds = new Set(paginatedMessages.map((m) => m._id));
+      setSelectedIds((prev) => prev.filter((id) => !visibleIds.has(id)));
+    } else {
+      const newIds = new Set([...selectedIds, ...paginatedMessages.map((m) => m._id)]);
+      setSelectedIds(Array.from(newIds));
+    }
+  };
+
+  const handleToggleRow = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds([]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!onBulkDelete || selectedIds.length === 0) return;
+    if (!window.confirm(`¿Estás seguro de eliminar los ${selectedIds.length} mensajes seleccionados?`)) return;
+
+    setActionLoading(true);
+    try {
+      await onBulkDelete(selectedIds);
+      setSelectedIds([]);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleBulkSendNow = async () => {
+    if (!onBulkSendNow || selectedIds.length === 0) return;
+    if (!window.confirm(`¿Disparar envío inmediato para los ${selectedIds.length} mensajes seleccionados?`)) return;
+
+    setActionLoading(true);
+    try {
+      await onBulkSendNow(selectedIds);
+      setSelectedIds([]);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const formatDateTime = (isoString: string) => {
     const d = new Date(isoString);
     if (isNaN(d.getTime())) return isoString;
@@ -89,6 +143,14 @@ export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
       minute: '2-digit',
       hour12: true
     });
+  };
+
+  const formatPhoneNumber = (raw: string) => {
+    const n = raw.replace(/\D/g, '');
+    if (n.length === 11 && n.startsWith('51')) {
+      return `+51 ${n.substring(2, 5)} ${n.substring(5, 8)} ${n.substring(8)}`;
+    }
+    return `+${n}`;
   };
 
   const handleOpenEdit = (msg: MessageItem) => {
@@ -143,12 +205,55 @@ export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
   };
 
   return (
-    <div className="rounded border border-zinc-800 bg-[#121215] text-zinc-100 flex flex-col">
+    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 flex flex-col shadow-sm">
+      {/* Barra de Acciones Masivas (Bulk Actions Bar) */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between px-4 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-b border-zinc-800 dark:border-zinc-200 font-sans text-xs animate-in fade-in duration-150">
+          <div className="flex items-center gap-2">
+            <CheckSquare size={16} />
+            <span className="font-semibold">{selectedIds.length} elemento(s) seleccionado(s)</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {onBulkSendNow && (
+              <button
+                type="button"
+                onClick={handleBulkSendNow}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 font-medium transition-colors cursor-pointer"
+              >
+                <Zap size={14} />
+                <span>Disparar ahora</span>
+              </button>
+            )}
+            {onBulkDelete && (
+              <button
+                type="button"
+                onClick={handleBulkDelete}
+                disabled={actionLoading}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 hover:bg-red-500 text-white font-medium transition-colors cursor-pointer"
+              >
+                <Trash2 size={14} />
+                <span>Eliminar seleccionados</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleClearSelection}
+              className="p-1 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900 transition-colors"
+              title="Deseleccionar"
+            >
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar Superior */}
-      <div className="p-3 border-b border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
+      <div className="p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
         {/* Input de Búsqueda */}
-        <div className="relative w-full sm:w-64">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+        <div className="relative w-full sm:w-72">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
             value={searchQuery}
@@ -156,228 +261,229 @@ export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
               setSearchQuery(e.target.value);
               setPage(1);
             }}
-            placeholder="Filtrar por número o texto..."
-            className="w-full bg-[#0b0f17] border border-zinc-800 rounded pl-8 pr-3 py-1.5 text-xs font-mono text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-600 transition-colors"
+            placeholder="Buscar por número o mensaje..."
+            className="w-full bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-xs font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-400 transition-colors"
           />
         </div>
 
         <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
           {/* Tabs Planas */}
-          <div className="flex items-center rounded border border-zinc-800 bg-[#0b0f17] p-0.5 text-xs font-mono">
-            <button
-              onClick={() => {
-                setActiveTab('all');
-                setPage(1);
-              }}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                activeTab === 'all'
-                  ? 'bg-zinc-800 text-zinc-100 font-medium'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Todos
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('pending');
-                setPage(1);
-              }}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                activeTab === 'pending'
-                  ? 'bg-zinc-800 text-zinc-100 font-medium'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              En Cola
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('sent');
-                setPage(1);
-              }}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                activeTab === 'sent'
-                  ? 'bg-zinc-800 text-zinc-100 font-medium'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Enviados
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('error');
-                setPage(1);
-              }}
-              className={`px-2.5 py-1 rounded transition-colors ${
-                activeTab === 'error'
-                  ? 'bg-zinc-800 text-zinc-100 font-medium'
-                  : 'text-zinc-500 hover:text-zinc-300'
-              }`}
-            >
-              Fallidos
-            </button>
+          <div className="flex items-center rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900/80 p-1 text-xs font-sans">
+            {(['all', 'pending', 'sent', 'error'] as FilterTab[]).map((tabKey) => {
+              const labelMap: Record<FilterTab, string> = {
+                all: 'Todos',
+                pending: 'En Cola',
+                sent: 'Enviados',
+                error: 'Fallidos'
+              };
+              return (
+                <button
+                  key={tabKey}
+                  onClick={() => {
+                    setActiveTab(tabKey);
+                    setPage(1);
+                  }}
+                  className={`px-3 py-1 rounded-md font-medium transition-colors ${
+                    activeTab === tabKey
+                      ? 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs'
+                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  {labelMap[tabKey]}
+                </button>
+              );
+            })}
           </div>
 
           {/* Botón Actualizar */}
           <button
             onClick={onRefresh}
             disabled={isLoading}
-            className="p-1.5 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
+            className="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             title="Actualizar tabla"
           >
-            <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+            <RefreshCw size={15} className={isLoading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* Tabla de Registros */}
       <div className="overflow-x-auto min-h-[300px]">
-        <table className="w-full text-left text-xs">
-          <thead className="bg-[#0b0f17] border-b border-zinc-800/80 text-[11px] font-mono uppercase text-zinc-500 tracking-wider select-none">
+        <table className="w-full text-left text-sm font-sans">
+          <thead className="bg-zinc-50/80 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-xs font-semibold uppercase text-zinc-500 tracking-wider select-none">
             <tr>
-              <th className="py-2.5 px-3">Destinatario</th>
-              <th className="py-2.5 px-3">Mensaje</th>
-              <th className="py-2.5 px-3">Programación</th>
-              <th className="py-2.5 px-3">Estado</th>
-              <th className="py-2.5 px-3 text-right">Acciones</th>
+              <th className="py-3 px-4 w-10 text-center">
+                <input
+                  type="checkbox"
+                  checked={allVisibleSelected}
+                  onChange={handleToggleSelectAll}
+                  className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+                  title="Seleccionar todos"
+                />
+              </th>
+              <th className="py-3 px-4">Destinatario</th>
+              <th className="py-3 px-4">Mensaje</th>
+              <th className="py-3 px-4">Programación</th>
+              <th className="py-3 px-4">Estado</th>
+              <th className="py-3 px-4 text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-zinc-800/60 font-mono">
+          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
             {paginatedMessages.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-12 text-center text-zinc-600 font-mono text-xs">
-                  {searchQuery ? 'No se encontraron mensajes con el criterio buscado.' : 'No hay mensajes en la cola.'}
+                <td colSpan={6} className="py-14 text-center text-zinc-400 font-sans text-sm">
+                  {searchQuery ? 'No se encontraron mensajes con el criterio buscado.' : 'No hay mensajes registrados.'}
                 </td>
               </tr>
             ) : (
               paginatedMessages.map((msg) => {
                 const isExpanded = expandedMessageId === msg._id;
-                const isPending = msg.status === 'PENDIENTE' || msg.status === 'PROCESANDO';
-                const isError = msg.status === 'ERROR';
+                const isSelected = selectedIds.includes(msg._id);
 
                 return (
-                  <tr key={msg._id} className="hover:bg-zinc-900/30 transition-colors">
-                    {/* Destinatario */}
-                    <td className="py-2.5 px-3 text-zinc-200 font-medium whitespace-nowrap">
-                      +{msg.phone}
+                  <tr
+                    key={msg._id}
+                    className={`transition-colors duration-150 ${
+                      isSelected
+                        ? 'bg-zinc-100/70 dark:bg-zinc-800/50'
+                        : 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/30'
+                    }`}
+                  >
+                    {/* Checkbox de Fila */}
+                    <td className="py-3.5 px-4 text-center">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleToggleRow(msg._id)}
+                        className="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+                      />
                     </td>
 
-                    {/* Mensaje con Truncado inteligente y click para expandir */}
-                    <td className="py-2.5 px-3 max-w-xs md:max-w-md">
+                    {/* Teléfono */}
+                    <td className="py-3.5 px-4 whitespace-nowrap font-mono text-xs text-zinc-800 dark:text-zinc-200">
+                      {formatPhoneNumber(msg.phone)}
+                    </td>
+
+                    {/* Mensaje */}
+                    <td className="py-3.5 px-4 max-w-xs md:max-w-md">
                       <div
                         onClick={() => setExpandedMessageId(isExpanded ? null : msg._id)}
-                        className={`font-sans cursor-pointer text-zinc-300 text-xs leading-relaxed ${
-                          isExpanded ? 'break-words' : 'truncate'
-                        }`}
-                        title="Haz clic para ver texto completo"
+                        className="cursor-pointer group flex flex-col gap-1"
                       >
-                        {msg.message}
+                        <p
+                          className={`text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed ${
+                            isExpanded ? 'whitespace-pre-wrap' : 'truncate'
+                          }`}
+                        >
+                          {msg.message}
+                        </p>
+                        {msg.error && (
+                          <div className="flex items-center gap-1.5 text-xs text-rose-600 dark:text-rose-400 font-mono mt-0.5">
+                            <AlertCircle size={12} />
+                            <span className="truncate">{msg.error}</span>
+                          </div>
+                        )}
                       </div>
-                      {msg.attachment && (
-                        <div className="inline-flex items-center gap-1 mt-1 text-[10px] text-zinc-500 font-mono">
-                          <FileText size={10} />
-                          <span>{msg.attachment.name}</span>
+                    </td>
+
+                    {/* Fecha Programada */}
+                    <td className="py-3.5 px-4 whitespace-nowrap text-xs font-mono text-zinc-600 dark:text-zinc-400">
+                      <div>{formatDateTime(msg.scheduledAt)}</div>
+                      {msg.sentAt && (
+                        <div className="text-[11px] text-zinc-400 mt-0.5">
+                          Enviado: {formatDateTime(msg.sentAt)}
                         </div>
                       )}
                     </td>
 
-                    {/* Programación */}
-                    <td className="py-2.5 px-3 text-zinc-400 whitespace-nowrap text-[11px]">
-                      {formatDateTime(msg.scheduledAt)}
-                    </td>
-
                     {/* Estado */}
-                    <td className="py-2.5 px-3 whitespace-nowrap">
+                    <td className="py-3.5 px-4 whitespace-nowrap">
                       {msg.status === 'ENVIADO' && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-emerald-950/30 border border-emerald-900/40 text-emerald-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50">
                           Enviado
                         </span>
                       )}
-                      {isPending && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-amber-950/30 border border-amber-900/40 text-amber-400">
-                          <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                          En cola
+                      {msg.status === 'PENDIENTE' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50">
+                          En Cola
                         </span>
                       )}
-                      {isError && (
-                        <span
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-red-950/30 border border-red-900/40 text-red-400 cursor-help"
-                          title={msg.error || 'Fallo desconocido'}
-                        >
-                          <AlertCircle size={11} />
+                      {msg.status === 'PROCESANDO' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/50">
+                          Procesando
+                        </span>
+                      )}
+                      {msg.status === 'ERROR' && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-medium bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50">
                           Error
                         </span>
                       )}
                     </td>
 
                     {/* Acciones */}
-                    <td className="py-2.5 px-3 text-right relative whitespace-nowrap">
-                      <div className="inline-flex items-center justify-end gap-1">
-                        {/* Botón rápido Enviar Ahora si está pendiente */}
-                        {isPending && (
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1 relative">
+                        {/* Acciones Rápidas */}
+                        {msg.status === 'PENDIENTE' && (
                           <button
                             onClick={() => handleExecuteAction(() => onSendNow(msg._id))}
-                            className="px-2 py-1 rounded border border-zinc-800 text-[11px] text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors"
-                            title="Enviar inmediatamente"
+                            disabled={actionLoading}
+                            className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                            title="Disparar envío inmediato"
                           >
-                            Disparar
+                            <Zap size={15} />
                           </button>
                         )}
-
-                        {/* Botón rápido Reintentar si dio error */}
-                        {isError && (
+                        {msg.status === 'ERROR' && (
                           <button
                             onClick={() => handleExecuteAction(() => onRetry(msg._id))}
-                            className="px-2 py-1 rounded border border-zinc-800 text-[11px] text-amber-400 hover:bg-amber-950/30 transition-colors"
+                            disabled={actionLoading}
+                            className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                             title="Reintentar envío"
                           >
-                            Reintentar
+                            <RotateCcw size={15} />
                           </button>
                         )}
 
-                        {/* Menú de 3 puntos */}
-                        <div className="relative">
-                          <button
-                            onClick={() => setActiveMenuId(activeMenuId === msg._id ? null : msg._id)}
-                            className="w-7 h-7 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors"
-                          >
-                            <MoreHorizontal size={14} />
-                          </button>
+                        {/* Menú Tres Puntos */}
+                        <button
+                          onClick={() => setActiveMenuId(activeMenuId === msg._id ? null : msg._id)}
+                          className="p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                          title="Más opciones"
+                        >
+                          <MoreHorizontal size={15} />
+                        </button>
 
-                          {activeMenuId === msg._id && (
-                            <div className="absolute right-0 mt-1 w-44 rounded border border-zinc-800 bg-[#121215] py-1 shadow-2xl z-40 text-xs text-left">
-                              {isPending && (
-                                <>
-                                  <button
-                                    onClick={() => handleOpenEdit(msg)}
-                                    className="w-full px-3 py-1.5 flex items-center gap-2 text-zinc-300 hover:bg-zinc-800 transition-colors"
-                                  >
-                                    <Edit2 size={12} />
-                                    <span>Editar texto</span>
-                                  </button>
-                                  <button
-                                    onClick={() => handleOpenReschedule(msg)}
-                                    className="w-full px-3 py-1.5 flex items-center gap-2 text-zinc-300 hover:bg-zinc-800 transition-colors"
-                                  >
-                                    <Calendar size={12} />
-                                    <span>Reprogramar</span>
-                                  </button>
-                                </>
-                              )}
+                        {/* Dropdown flotante */}
+                        {activeMenuId === msg._id && (
+                          <div className="absolute right-0 top-8 w-44 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] py-1 shadow-xl z-30 text-xs font-sans text-left">
+                            <button
+                              onClick={() => handleOpenEdit(msg)}
+                              className="w-full px-3 py-2 flex items-center gap-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            >
+                              <Edit2 size={13} />
+                              <span>Editar texto</span>
+                            </button>
 
-                              <div className="h-[1px] bg-zinc-800 my-1" />
+                            <button
+                              onClick={() => handleOpenReschedule(msg)}
+                              className="w-full px-3 py-2 flex items-center gap-2 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                            >
+                              <Calendar size={13} />
+                              <span>Reprogramar</span>
+                            </button>
 
-                              <button
-                                onClick={() => handleExecuteAction(() => onDelete(msg._id))}
-                                className="w-full px-3 py-1.5 flex items-center gap-2 text-red-400 hover:bg-red-950/30 transition-colors"
-                              >
-                                <Trash2 size={12} />
-                                <span>Cancelar / Eliminar</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                            <div className="h-[1px] bg-zinc-100 dark:bg-zinc-800 my-1" />
+
+                            <button
+                              onClick={() => handleExecuteAction(() => onDelete(msg._id))}
+                              className="w-full px-3 py-2 flex items-center gap-2 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                            >
+                              <Trash2 size={13} />
+                              <span>Eliminar mensaje</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -388,81 +494,90 @@ export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
         </table>
       </div>
 
-      {/* Paginación Inferior */}
-      <div className="p-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono text-zinc-400 select-none">
+      {/* Paginación */}
+      <div className="p-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 text-xs font-sans text-zinc-500 select-none">
         <div className="flex items-center gap-2">
-          <span>Mostrar</span>
+          <span>Filas por página:</span>
           <select
             value={pageSize}
             onChange={(e) => {
               setPageSize(Number(e.target.value));
               setPage(1);
             }}
-            className="bg-[#0b0f17] border border-zinc-800 rounded px-1.5 py-0.5 text-zinc-300 outline-none"
+            className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded px-2 py-1 outline-none font-mono text-zinc-700 dark:text-zinc-300 cursor-pointer"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>
             <option value={50}>50</option>
           </select>
-          <span>por página</span>
+          <span className="font-mono ml-2">
+            Total: {filteredMessages.length} mensajes
+          </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <span>
-            {filteredMessages.length === 0
-              ? '0 de 0'
-              : `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, filteredMessages.length)} de ${filteredMessages.length}`}
+        <div className="flex items-center gap-2">
+          <span className="font-mono">
+            Página {page} de {totalPages}
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="p-1 rounded border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+              disabled={page <= 1}
+              className="p-1 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 disabled:opacity-40 transition-colors"
             >
-              <ChevronLeft size={14} />
+              <ChevronLeft size={15} />
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="p-1 rounded border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 transition-colors"
+              className="p-1 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 disabled:opacity-40 transition-colors"
             >
-              <ChevronRight size={14} />
+              <ChevronRight size={15} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Modal Editar Mensaje */}
+      {/* Modal Editar Texto */}
       {editingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 mb-3 border-b border-zinc-800">
-              <span className="text-xs font-mono font-semibold text-zinc-200 uppercase tracking-wider">
-                Editar Mensaje
-              </span>
-              <button onClick={() => setEditingItem(null)} className="text-zinc-500 hover:text-zinc-200">
-                <X size={15} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Edit2 size={16} />
+                <span>Editar Contenido del Mensaje</span>
+              </div>
+              <button
+                onClick={() => setEditingItem(null)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+              >
+                <X size={16} />
               </button>
             </div>
-            <textarea
-              rows={5}
-              value={editText}
-              onChange={(e) => setEditText(e.target.value)}
-              className="w-full bg-[#0b0f17] border border-zinc-800 rounded p-2.5 text-xs text-zinc-100 outline-none focus:border-zinc-600 resize-y"
-            />
-            <div className="flex justify-end gap-2 mt-3">
+
+            <div className="py-4">
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                rows={4}
+                required
+                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 p-3 text-sm font-sans focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 resize-none shadow-xs"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
               <button
                 type="button"
                 onClick={() => setEditingItem(null)}
-                className="px-3 py-1.5 text-xs rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                className="px-3.5 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleSaveEdit}
-                disabled={actionLoading}
-                className="px-3 py-1.5 text-xs rounded bg-white text-black font-semibold hover:bg-zinc-200"
+                disabled={actionLoading || !editText.trim()}
+                className="px-3.5 py-1.5 text-xs rounded-md bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold transition-colors"
               >
                 {actionLoading ? 'Guardando...' : 'Guardar Cambios'}
               </button>
@@ -471,39 +586,51 @@ export const MessageQueueTable: React.FC<MessageQueueTableProps> = ({
         </div>
       )}
 
-      {/* Modal Reprogramar */}
+      {/* Modal Reprogramar Fecha */}
       {reschedulingItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 shadow-2xl">
-            <div className="flex items-center justify-between pb-2 mb-3 border-b border-zinc-800">
-              <span className="text-xs font-mono font-semibold text-zinc-200 uppercase tracking-wider">
-                Reprogramar Envío
-              </span>
-              <button onClick={() => setReschedulingItem(null)} className="text-zinc-500 hover:text-zinc-200">
-                <X size={15} />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
+              <div className="flex items-center gap-2 text-sm font-semibold">
+                <Calendar size={16} />
+                <span>Reprogramar Fecha y Hora</span>
+              </div>
+              <button
+                onClick={() => setReschedulingItem(null)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+              >
+                <X size={16} />
               </button>
             </div>
-            <input
-              type="datetime-local"
-              value={rescheduleDate}
-              onChange={(e) => setRescheduleDate(e.target.value)}
-              className="w-full bg-[#0b0f17] border border-zinc-800 rounded p-2.5 text-xs font-mono text-zinc-200 outline-none [color-scheme:dark]"
-            />
-            <div className="flex justify-end gap-2 mt-4">
+
+            <div className="py-4">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">
+                Nueva Fecha y Hora (Hora Local)
+              </label>
+              <input
+                type="datetime-local"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                required
+                className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-3 py-2 text-sm font-mono focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 shadow-xs"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
               <button
                 type="button"
                 onClick={() => setReschedulingItem(null)}
-                className="px-3 py-1.5 text-xs rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-800"
+                className="px-3.5 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={handleSaveReschedule}
-                disabled={actionLoading}
-                className="px-3 py-1.5 text-xs rounded bg-white text-black font-semibold hover:bg-zinc-200"
+                disabled={actionLoading || !rescheduleDate}
+                className="px-3.5 py-1.5 text-xs rounded-md bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold transition-colors"
               >
-                {actionLoading ? 'Guardando...' : 'Actualizar Fecha'}
+                {actionLoading ? 'Actualizando...' : 'Confirmar Reprogramación'}
               </button>
             </div>
           </div>

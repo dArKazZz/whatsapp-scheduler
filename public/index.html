@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WA / Scheduler</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -14,14 +14,8 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            mono: ['JetBrains Mono', 'monospace'],
-          },
-          colors: {
-            base: '#09090b',
-            surface: '#121215',
-            elevated: '#18181b',
-            borderSubtle: '#27272a',
+            sans: ['"Open Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
           }
         }
       }
@@ -29,651 +23,778 @@
   </script>
   <style>
     * { box-sizing: border-box; }
-    body { background-color: #09090b; color: #f4f4f5; font-family: 'Inter', system-ui, sans-serif; }
-    [color-scheme="dark"] { color-scheme: dark; }
+    body {
+      font-family: 'Open Sans', system-ui, sans-serif;
+      font-size: 15px;
+    }
     input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-      filter: invert(0.8);
       cursor: pointer;
+    }
+    .dark input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.85);
     }
   </style>
 </head>
-<body class="min-h-screen flex flex-col bg-[#09090b] text-zinc-100 antialiased selection:bg-zinc-800 selection:text-white">
+<body class="min-h-screen flex flex-col bg-[#f8fafc] text-zinc-900 dark:bg-[#09090b] dark:text-zinc-100 antialiased selection:bg-zinc-200 dark:selection:bg-zinc-800 transition-colors">
 
-  <!-- 1. SLIM NAVBAR (H-12) -->
-  <header class="h-12 border-b border-zinc-800 bg-[#09090b] text-zinc-100 flex items-center justify-between px-4 sticky top-0 z-40 select-none">
-    <!-- Izquierda: Brand & Status Dot -->
-    <div class="flex items-center gap-3">
-      <span class="font-mono text-sm tracking-tight font-semibold text-zinc-100">
+  <!-- 1. SLIM NAVBAR -->
+  <header class="h-14 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 select-none transition-colors shadow-xs">
+    <!-- Brand & Connection Status -->
+    <div class="flex items-center gap-3 sm:gap-4">
+      <span class="font-mono text-base tracking-tight font-bold text-zinc-900 dark:text-white">
         WA / Scheduler
       </span>
-      <div class="h-4 w-[1px] bg-zinc-800"></div>
-      <div class="flex items-center gap-2 text-xs">
-        <span id="navStatusDot" class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
-        <span id="navStatusText" class="font-mono text-zinc-400 font-medium">Desconectado</span>
+
+      <div class="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800"></div>
+
+      <div class="flex items-center gap-2 text-xs font-sans">
+        <span id="navStatusDot" class="w-2 h-2 rounded-full bg-zinc-400"></span>
+        <span id="navStatusText" class="font-medium text-zinc-500 dark:text-zinc-400">Desconectado</span>
+        <span id="navUserBadge" class="hidden font-mono text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-medium"></span>
       </div>
     </div>
 
-    <!-- Derecha: Stats, Theme Toggle, Session Menu -->
+    <!-- Right: Stats, Theme Toggle, User Menu -->
     <div class="flex items-center gap-3 sm:gap-4">
-      <div class="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 font-mono">
-        <span id="navPendingCount" class="text-zinc-200">0</span>
+      <!-- Stats Counter (Solo en conectado) -->
+      <div id="navStatsContainer" class="hidden md:flex items-center gap-2 text-xs font-mono text-zinc-500 dark:text-zinc-400">
+        <span id="navPendingCount" class="font-semibold text-zinc-900 dark:text-zinc-200">0</span>
         <span>pendientes</span>
-        <span class="text-zinc-700">·</span>
-        <span id="navSentCount" class="text-zinc-200">0</span>
-        <span>enviados hoy</span>
+        <span class="text-zinc-300 dark:text-zinc-700">·</span>
+        <span id="navSentCount" class="font-semibold text-zinc-900 dark:text-zinc-200">0</span>
+        <span>enviados</span>
       </div>
 
-      <div class="hidden sm:block h-4 w-[1px] bg-zinc-800"></div>
-
-      <!-- Theme Toggle -->
+      <!-- Toggle Tema (Claro / Oscuro) -->
       <button
         id="themeToggleBtn"
         type="button"
-        class="w-7 h-7 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 flex items-center justify-center transition-colors"
+        class="w-9 h-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center transition-colors cursor-pointer"
         title="Cambiar tema"
       >
-        <svg id="themeIconSun" class="w-3.5 h-3.5 block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-        <svg id="themeIconMoon" class="w-3.5 h-3.5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg id="themeIconSun" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        <svg id="themeIconMoon" class="w-4 h-4 block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
       </button>
 
-      <!-- User Menu Trigger -->
+      <!-- Menú de Usuario -->
       <div class="relative">
         <button
           id="userMenuBtn"
           type="button"
-          class="flex items-center gap-2 px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-200 text-xs font-medium transition-colors"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-medium transition-colors cursor-pointer"
         >
-          <div class="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-mono text-zinc-300">
+          <div id="userAvatarLetter" class="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-300">
             W
           </div>
-          <span id="navUserName" class="hidden md:inline max-w-[120px] truncate text-zinc-300">Sesión</span>
-          <svg class="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          <span id="navUserName" class="hidden sm:inline max-w-[130px] truncate">Sesión</span>
+          <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
 
         <!-- Dropdown Menu -->
-        <div id="userMenuDropdown" class="hidden absolute right-0 mt-1.5 w-56 rounded border border-zinc-800 bg-[#121215] py-1 shadow-2xl z-50 text-xs">
-          <div class="px-3 py-2 border-b border-zinc-800/80">
-            <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Identificador</div>
-            <div id="dropdownPhone" class="text-zinc-200 font-mono truncate mt-0.5">Sin vincular</div>
+        <div id="userMenuDropdown" class="hidden absolute right-0 mt-2 w-64 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] py-1.5 shadow-xl z-50 text-xs font-sans">
+          <div class="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
+            <div class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Número vinculado</div>
+            <div id="dropdownPhone" class="text-zinc-900 dark:text-zinc-100 font-mono font-medium truncate mt-0.5">Sin vincular</div>
           </div>
-          <div class="px-3 py-2 flex items-center justify-between text-zinc-400 border-b border-zinc-800/80 font-mono text-[11px]">
-            <span>Latencia Ping</span>
-            <span id="dropdownPing" class="text-zinc-300">-- ms</span>
+          <div class="px-3.5 py-2 flex items-center justify-between text-zinc-600 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
+            <span>Ping Keep-Alive</span>
+            <span id="pingVal" class="font-mono text-zinc-700 dark:text-zinc-300">Activo</span>
           </div>
           <button
-            id="menuLogoutBtn"
+            id="disconnectMenuBtn"
             type="button"
-            class="w-full px-3 py-2 text-left flex items-center gap-2 text-red-400 hover:bg-red-950/30 transition-colors"
+            class="hidden w-full px-3.5 py-2.5 text-left flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-medium transition-colors cursor-pointer"
           >
-            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-            <span>Desvincular sesión</span>
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+            <span>Desvincular WhatsApp</span>
           </button>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- MAIN CONTAINER -->
-  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
-
-    <!-- UPPER GRID (4 cols Status / 8 cols Form) -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-
-      <!-- PANEL IZQUIERDO: STATUS WHATSAPP -->
-      <div class="lg:col-span-4 flex flex-col rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 justify-between select-none">
-        <div>
-          <div class="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800/80">
-            <div class="flex items-center gap-2">
-              <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
-              <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono">
-                Vinculación WhatsApp
-              </span>
-            </div>
-            <span id="cardStatusBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border bg-zinc-900 border-zinc-800 text-zinc-400">
-              <span id="cardStatusDot" class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
-              <span id="cardStatusText">Inactivo</span>
-            </span>
-          </div>
-
-          <!-- Dynamic Container for Connected / QR / Loading -->
-          <div id="statusDynamicContainer" class="py-2">
-            <!-- Rendered by JS -->
-            <div class="py-8 flex flex-col items-center justify-center text-center gap-2 text-zinc-500">
-              <svg class="w-5 h-5 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-              <span class="text-xs font-mono">Comprobando conexión...</span>
-            </div>
-          </div>
+  <!-- 2. VISTA CUANDO ESTÁ DESCONECTADO (SOLO CÓDIGO QR LIMPIO) -->
+  <div id="disconnectedView" class="flex-1 flex items-center justify-center p-6">
+    <div class="max-w-md w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-6 sm:p-8 shadow-md text-zinc-800 dark:text-zinc-100 select-none">
+      <div class="flex items-center justify-between pb-4 mb-5 border-b border-zinc-100 dark:border-zinc-800">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+          <span class="text-base font-semibold tracking-wide text-zinc-900 dark:text-zinc-100">
+            Vincular WhatsApp
+          </span>
         </div>
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 text-amber-700 dark:text-amber-400">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+          Desconectado
+        </span>
       </div>
 
-      <!-- PANEL DERECHO: FORMULARIO DE PROGRAMACIÓN -->
-      <div class="lg:col-span-8 flex flex-col rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 justify-between">
-        <div>
-          <div class="pb-3 mb-4 border-b border-zinc-800/80 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono">
-                Programar Mensaje
-              </span>
-            </div>
-          </div>
-
-          <form id="schedulerForm" class="flex flex-col gap-4">
-            <!-- Destinatario -->
-            <div>
-              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">
-                Destinatario
-              </label>
-              <div class="flex rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600 transition-colors">
-                <select id="countrySelect" class="bg-transparent border-r border-zinc-800 text-xs font-mono text-zinc-300 px-2.5 py-2 outline-none cursor-pointer hover:bg-zinc-900/50">
-                  <option value="51" class="bg-zinc-900 text-zinc-200">PE +51</option>
-                  <option value="1" class="bg-zinc-900 text-zinc-200">US +1</option>
-                  <option value="52" class="bg-zinc-900 text-zinc-200">MX +52</option>
-                  <option value="57" class="bg-zinc-900 text-zinc-200">CO +57</option>
-                  <option value="56" class="bg-zinc-900 text-zinc-200">CL +56</option>
-                  <option value="549" class="bg-zinc-900 text-zinc-200">AR +549</option>
-                  <option value="34" class="bg-zinc-900 text-zinc-200">ES +34</option>
-                </select>
-                <input
-                  type="tel"
-                  id="phoneInput"
-                  placeholder="954 584 523"
-                  required
-                  class="flex-1 bg-transparent px-3 py-2 text-xs font-mono text-zinc-100 placeholder-zinc-600 outline-none"
-                />
-              </div>
-            </div>
-
-            <!-- Fecha y Hora con Chips -->
-            <div>
-              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">
-                Fecha y Hora de Disparo (Hora Local)
-              </label>
-              <div class="relative flex items-center rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600 mb-2">
-                <input
-                  type="datetime-local"
-                  id="dateTimeInput"
-                  required
-                  class="w-full bg-transparent px-3 py-2 text-xs font-mono text-zinc-200 outline-none cursor-pointer [color-scheme:dark]"
-                />
-              </div>
-              <div class="flex flex-wrap gap-1.5">
-                <button type="button" onclick="addMinutes(2)" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">+2m</button>
-                <button type="button" onclick="addMinutes(10)" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">+10m</button>
-                <button type="button" onclick="addMinutes(30)" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">+30m</button>
-                <button type="button" onclick="addMinutes(60)" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">+1h</button>
-                <button type="button" onclick="setTomorrowNine()" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">Mañana 09:00</button>
-              </div>
-            </div>
-
-            <!-- Contenido del Mensaje -->
-            <div>
-              <div class="flex items-center justify-between mb-1.5">
-                <label class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
-                  Contenido del Mensaje
-                </label>
-                <div class="flex items-center gap-1">
-                  <button type="button" onclick="insertVariable('nombre')" class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors">{nombre}</button>
-                  <button type="button" onclick="insertVariable('hora')" class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors">{hora}</button>
-                </div>
-              </div>
-
-              <div class="rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600">
-                <textarea
-                  id="messageText"
-                  rows="4"
-                  placeholder="Escribe el mensaje..."
-                  maxLength="1000"
-                  required
-                  class="w-full bg-transparent p-3 text-xs text-zinc-100 placeholder-zinc-600 outline-none resize-y min-h-[90px] leading-relaxed"
-                ></textarea>
-
-                <!-- Attachment Pill Preview -->
-                <div id="attachmentPill" class="hidden px-3 pb-2 flex items-center">
-                  <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700 text-xs text-zinc-300 font-mono">
-                    <svg class="w-3 h-3 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>
-                    <span id="attachmentFileName" class="max-w-[200px] truncate">archivo.pdf</span>
-                    <button type="button" onclick="removeAttachment()" class="text-zinc-500 hover:text-zinc-200 ml-1">
-                      <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Footer toolbar con contador -->
-                <div class="px-3 py-2 border-t border-zinc-800/80 flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <input type="file" id="fileInputHidden" class="hidden" onchange="handleFileSelected(event)" />
-                    <button
-                      type="button"
-                      onclick="document.getElementById('fileInputHidden').click()"
-                      class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
-                      title="Adjuntar archivo o imagen"
-                    >
-                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                      <span class="text-[11px] font-mono">Adjuntar</span>
-                    </button>
-                  </div>
-                  <div id="charCounter" class="text-[11px] font-mono text-zinc-500">0 / 1000</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Botón Programar -->
-            <button
-              type="submit"
-              id="submitFormBtn"
-              class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-colors shadow-sm disabled:opacity-50"
-            >
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-              <span>Programar Envío</span>
-            </button>
-          </form>
-        </div>
+      <div id="qrLoadingBox" class="flex flex-col items-center justify-center py-12 text-center text-zinc-500 gap-3">
+        <svg class="w-6 h-6 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <span class="text-sm font-medium">Generando código QR de WhatsApp...</span>
       </div>
-    </div>
 
-    <!-- TABLA DE HISTORIAL Y COLA -->
-    <section class="rounded border border-zinc-800 bg-[#121215] text-zinc-100 flex flex-col">
-      <!-- Toolbar Superior -->
-      <div class="p-3 border-b border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
-        <div class="relative w-full sm:w-64">
-          <svg class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input
-            type="text"
-            id="tableSearchInput"
-            placeholder="Filtrar por número o texto..."
-            class="w-full bg-[#0b0f17] border border-zinc-800 rounded pl-8 pr-3 py-1.5 text-xs font-mono text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-600 transition-colors"
-          />
+      <div id="qrReadyBox" class="hidden flex flex-col items-center justify-center gap-5">
+        <div class="p-3 rounded-xl bg-white border border-zinc-200 shadow-sm inline-block">
+          <img id="qrImage" src="" alt="Código QR de WhatsApp" class="w-60 h-60 block object-contain" />
         </div>
 
-        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-          <!-- Segmented Tabs -->
-          <div class="flex items-center rounded border border-zinc-800 bg-[#0b0f17] p-0.5 text-xs font-mono">
-            <button type="button" class="tab-btn px-2.5 py-1 rounded font-medium bg-zinc-800 text-zinc-100" data-tab="all">Todos</button>
-            <button type="button" class="tab-btn px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300" data-tab="pending">En Cola</button>
-            <button type="button" class="tab-btn px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300" data-tab="sent">Enviados</button>
-            <button type="button" class="tab-btn px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300" data-tab="error">Fallidos</button>
-          </div>
+        <div class="text-center space-y-1.5 text-sm text-zinc-600 dark:text-zinc-400">
+          <p class="font-semibold text-zinc-900 dark:text-zinc-100">1. Abre WhatsApp en tu teléfono</p>
+          <p>2. Ve a <strong>Configuración / Dispositivos vinculados</strong></p>
+          <p>3. Toca <strong>Vincular un dispositivo</strong> y escanea este código</p>
+        </div>
 
-          <!-- Refresh Button -->
+        <div class="flex items-center justify-between w-full pt-3 border-t border-zinc-100 dark:border-zinc-800 text-xs text-zinc-500 font-mono">
+          <span>Expira en <span id="qrTimer">45</span>s</span>
           <button
+            id="reloadQrBtn"
             type="button"
-            id="tableRefreshBtn"
-            class="p-1.5 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
-            title="Actualizar tabla"
+            class="inline-flex items-center gap-1.5 text-zinc-700 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white font-sans font-medium transition-colors cursor-pointer"
           >
-            <svg id="refreshSpinIcon" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            <span>Recargar código</span>
           </button>
         </div>
       </div>
+    </div>
+  </div>
 
-      <!-- Tabla Responsive -->
-      <div class="overflow-x-auto min-h-[260px]">
-        <table class="w-full text-left text-xs">
-          <thead class="bg-[#0b0f17] border-b border-zinc-800/80 text-[11px] font-mono uppercase text-zinc-500 tracking-wider select-none">
-            <tr>
-              <th class="py-2.5 px-3">Destinatario</th>
-              <th class="py-2.5 px-3">Mensaje</th>
-              <th class="py-2.5 px-3">Programación</th>
-              <th class="py-2.5 px-3">Estado</th>
-              <th class="py-2.5 px-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="messagesTableBody" class="divide-y divide-zinc-800/60 font-mono">
-            <tr>
-              <td colspan="5" class="py-12 text-center text-zinc-600 font-mono text-xs">Cargando mensajes...</td>
-            </tr>
-          </tbody>
-        </table>
+  <!-- 3. VISTA CUANDO ESTÁ CONECTADO (SIDEBAR CHATS + FORMULARIO + TABLA CON BULK ACTIONS) -->
+  <div id="connectedView" class="hidden flex-1 flex flex-col lg:flex-row overflow-hidden">
+
+    <!-- SIDEBAR: CHATS RECIENTES Y CONTACTOS -->
+    <aside id="recentChatsSidebar" class="w-full lg:w-80 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] flex flex-col transition-all duration-200 select-none">
+      <div class="p-3.5 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="w-4 h-4 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span class="font-semibold text-sm tracking-tight">Chats Recientes</span>
+          <span id="chatsCountBadge" class="text-xs px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 font-mono">0</span>
+        </div>
+        <button
+          id="toggleSidebarBtn"
+          type="button"
+          class="p-1 rounded text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden lg:block cursor-pointer"
+          title="Ocultar barra lateral"
+        >
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+        </button>
       </div>
 
-      <!-- Paginación Inferior -->
-      <div class="p-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono text-zinc-400 select-none">
-        <div class="flex items-center gap-2">
-          <span>Mostrar</span>
-          <select id="pageSizeSelect" class="bg-[#0b0f17] border border-zinc-800 rounded px-1.5 py-0.5 text-zinc-300 outline-none">
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-          </select>
-          <span>por página</span>
+      <!-- Buscador de Contactos -->
+      <div class="p-2.5 border-b border-zinc-100 dark:border-zinc-800/80">
+        <div class="relative">
+          <svg class="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input
+            id="chatSearchInput"
+            type="text"
+            placeholder="Buscar contacto o número..."
+            class="w-full pl-9 pr-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-xs font-sans placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
+          />
+        </div>
+      </div>
+
+      <!-- Lista de Chats -->
+      <div id="chatsListContainer" class="flex-1 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/40">
+        <!-- Renderizado dinámico -->
+      </div>
+    </aside>
+
+    <!-- Botón para Reabrir Sidebar si está colapsado -->
+    <div id="sidebarCollapsedBar" class="hidden lg:flex flex-col items-center py-4 px-2 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 w-12 shrink-0">
+      <button
+        id="reopenSidebarBtn"
+        type="button"
+        title="Abrir chats recientes"
+        class="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors cursor-pointer"
+      >
+        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <!-- ÁREA PRINCIPAL: FORMULARIO + TABLA -->
+    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-6xl">
+
+      <!-- Formulario de Programación de Mensajes -->
+      <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-5 sm:p-6 shadow-sm text-zinc-900 dark:text-zinc-100">
+        <div class="pb-4 mb-5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <svg class="w-5 h-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <h2 class="text-base font-semibold tracking-tight">Programar Mensaje</h2>
+          </div>
+          <div id="selectedContactPill" class="hidden items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
+            <span id="selectedContactName">Contacto seleccionado</span>
+            <button type="button" id="clearSelectedContactBtn" class="ml-1 text-blue-400 hover:text-blue-700">&times;</button>
+          </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <span id="paginationCountText">0 de 0</span>
-          <div class="flex items-center gap-1">
-            <button type="button" id="prevPageBtn" class="p-1 rounded border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 transition-colors">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+        <form id="schedulerForm" class="flex flex-col gap-5">
+          <!-- Campo Destinatario con selector de país -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+              Destinatario
+            </label>
+            <div class="flex rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors shadow-xs">
+              <select
+                id="countryPrefixSelect"
+                class="bg-transparent border-r border-zinc-200 dark:border-zinc-700 text-sm font-mono text-zinc-700 dark:text-zinc-300 px-3 py-2.5 outline-none cursor-pointer"
+              >
+                <option value="51" selected>PE +51</option>
+                <option value="1">US +1</option>
+                <option value="52">MX +52</option>
+                <option value="57">CO +57</option>
+                <option value="56">CL +56</option>
+                <option value="549">AR +549</option>
+                <option value="34">ES +34</option>
+              </select>
+              <input
+                id="phoneInput"
+                type="tel"
+                required
+                placeholder="954 584 523"
+                class="flex-1 bg-transparent px-4 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none"
+              />
+            </div>
+          </div>
+
+          <!-- Fecha y Hora de Envío con Chips -->
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
+              Fecha y Hora de Envío
+            </label>
+            <div class="rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors mb-2.5 shadow-xs">
+              <input
+                id="datetimeInput"
+                type="datetime-local"
+                required
+                class="w-full bg-transparent px-4 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
+              />
+            </div>
+
+            <!-- Chips rápidos -->
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" class="quick-time-chip px-3 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="2">+2m</button>
+              <button type="button" class="quick-time-chip px-3 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="10">+10m</button>
+              <button type="button" class="quick-time-chip px-3 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="30">+30m</button>
+              <button type="button" class="quick-time-chip px-3 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="60">+1h</button>
+              <button type="button" id="tomorrowChip" class="px-3 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer">Mañana 09:00</button>
+            </div>
+          </div>
+
+          <!-- Contenido del Mensaje -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label class="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+                Contenido del Mensaje
+              </label>
+              <div class="flex items-center gap-1.5">
+                <span class="text-[11px] text-zinc-400">Variables:</span>
+                <button type="button" class="insert-var-btn px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-xs font-mono text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 cursor-pointer" data-var="nombre">{nombre}</button>
+                <button type="button" class="insert-var-btn px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-xs font-mono text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 cursor-pointer" data-var="hora">{hora}</button>
+              </div>
+            </div>
+
+            <textarea
+              id="messageInput"
+              rows="4"
+              maxlength="1000"
+              required
+              placeholder="Escribe el mensaje a programar..."
+              class="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 p-4 text-sm font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 focus:bg-white dark:focus:bg-zinc-900 transition-colors resize-none shadow-xs"
+            ></textarea>
+
+            <div class="flex items-center justify-between mt-1 text-xs text-zinc-400 font-mono">
+              <span id="charCounter">0 / 1000 caracteres</span>
+            </div>
+          </div>
+
+          <!-- Botón de Envío -->
+          <button
+            id="submitBtn"
+            type="submit"
+            class="w-full py-3.5 px-4 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-xs"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <span>Programar Envío</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- TABLA DE MENSAJES CON BULK ACTIONS -->
+      <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 flex flex-col shadow-sm overflow-hidden">
+
+        <!-- Barra de Acciones Masivas (Bulk Actions Bar) -->
+        <div id="bulkActionsBar" class="hidden items-center justify-between px-4 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-b border-zinc-800 dark:border-zinc-200 font-sans text-xs">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <span id="selectedCountText" class="font-semibold">0 seleccionados</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              id="bulkSendNowBtn"
+              type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 font-medium transition-colors cursor-pointer"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Disparar ahora</span>
             </button>
-            <button type="button" id="nextPageBtn" class="p-1 rounded border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 transition-colors">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            <button
+              id="bulkDeleteBtn"
+              type="button"
+              class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-red-600 hover:bg-red-500 text-white font-medium transition-colors cursor-pointer"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              <span>Eliminar seleccionados</span>
+            </button>
+            <button
+              id="clearSelectionBtn"
+              type="button"
+              class="p-1 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900 cursor-pointer"
+              title="Deseleccionar"
+            >
+              &times;
             </button>
           </div>
         </div>
-      </div>
-    </section>
 
-  </main>
+        <!-- Toolbar Superior de la Tabla -->
+        <div class="p-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+          <!-- Buscador de Mensajes -->
+          <div class="relative w-full sm:w-72">
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <input
+              id="tableSearchInput"
+              type="text"
+              placeholder="Buscar por número o mensaje..."
+              class="w-full bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-lg pl-9 pr-3 py-2 text-xs font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-400 transition-colors"
+            />
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            <!-- Tabs de Filtro -->
+            <div class="flex items-center rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900/80 p-1 text-xs font-sans">
+              <button type="button" class="tab-btn px-3 py-1 rounded-md font-medium transition-colors cursor-pointer bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs" data-tab="all">Todos</button>
+              <button type="button" class="tab-btn px-3 py-1 rounded-md font-medium transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="pending">En Cola</button>
+              <button type="button" class="tab-btn px-3 py-1 rounded-md font-medium transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="sent">Enviados</button>
+              <button type="button" class="tab-btn px-3 py-1 rounded-md font-medium transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="error">Fallidos</button>
+            </div>
+
+            <!-- Botón Actualizar Tabla -->
+            <button
+              id="refreshTableBtn"
+              type="button"
+              class="p-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+              title="Actualizar tabla"
+            >
+              <svg id="refreshIcon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Tabla -->
+        <div class="overflow-x-auto min-h-[300px]">
+          <table class="w-full text-left text-sm font-sans">
+            <thead class="bg-zinc-50/80 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-xs font-semibold uppercase text-zinc-500 tracking-wider select-none">
+              <tr>
+                <th class="py-3 px-4 w-10 text-center">
+                  <input
+                    id="selectAllCheckbox"
+                    type="checkbox"
+                    class="rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+                    title="Seleccionar todos"
+                  />
+                </th>
+                <th class="py-3 px-4">Destinatario</th>
+                <th class="py-3 px-4">Mensaje</th>
+                <th class="py-3 px-4">Programación</th>
+                <th class="py-3 px-4">Estado</th>
+                <th class="py-3 px-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="messagesTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+              <!-- Renderizado dinámico -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Paginador -->
+        <div class="p-4 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 text-xs font-sans text-zinc-500 select-none">
+          <div class="flex items-center gap-2">
+            <span>Filas por página:</span>
+            <select id="pageSizeSelect" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded px-2 py-1 outline-none font-mono text-zinc-700 dark:text-zinc-300 cursor-pointer">
+              <option value="10" selected>10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+            </select>
+            <span id="totalCountText" class="font-mono ml-2">Total: 0 mensajes</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <span id="pageIndicator" class="font-mono">Página 1 de 1</span>
+            <div class="flex items-center gap-1">
+              <button id="prevPageBtn" type="button" class="p-1 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <button id="nextPageBtn" type="button" class="p-1 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
 
   <!-- MODAL: EDITAR MENSAJE -->
-  <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-    <div class="w-full max-w-md rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 shadow-2xl">
-      <div class="flex items-center justify-between pb-2 mb-3 border-b border-zinc-800">
-        <span class="text-xs font-mono font-semibold text-zinc-200 uppercase tracking-wider">Editar Mensaje</span>
-        <button type="button" onclick="closeEditModal()" class="text-zinc-500 hover:text-zinc-200">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
+  <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+    <div class="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+        <h3 class="text-sm font-semibold">Editar Contenido del Mensaje</h3>
+        <button id="closeEditModalBtn" type="button" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-lg cursor-pointer">&times;</button>
       </div>
-      <input type="hidden" id="editModalId" />
-      <textarea id="editModalText" rows="5" class="w-full bg-[#0b0f17] border border-zinc-800 rounded p-2.5 text-xs text-zinc-100 outline-none focus:border-zinc-600 resize-y"></textarea>
-      <div class="flex justify-end gap-2 mt-3">
-        <button type="button" onclick="closeEditModal()" class="px-3 py-1.5 text-xs rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-800">Cancelar</button>
-        <button type="button" onclick="saveEditMessage()" class="px-3 py-1.5 text-xs rounded bg-white text-black font-semibold hover:bg-zinc-200">Guardar Cambios</button>
+      <div class="py-4">
+        <textarea id="editMessageTextarea" rows="4" class="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 p-3 text-sm font-sans focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 resize-none"></textarea>
       </div>
-    </div>
-  </div>
-
-  <!-- MODAL: REPROGRAMAR -->
-  <div id="rescheduleModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
-    <div class="w-full max-w-sm rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 shadow-2xl">
-      <div class="flex items-center justify-between pb-2 mb-3 border-b border-zinc-800">
-        <span class="text-xs font-mono font-semibold text-zinc-200 uppercase tracking-wider">Reprogramar Envío</span>
-        <button type="button" onclick="closeRescheduleModal()" class="text-zinc-500 hover:text-zinc-200">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-      </div>
-      <input type="hidden" id="rescheduleModalId" />
-      <input type="datetime-local" id="rescheduleModalDateTime" class="w-full bg-[#0b0f17] border border-zinc-800 rounded p-2.5 text-xs font-mono text-zinc-200 outline-none [color-scheme:dark]" />
-      <div class="flex justify-end gap-2 mt-4">
-        <button type="button" onclick="closeRescheduleModal()" class="px-3 py-1.5 text-xs rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-800">Cancelar</button>
-        <button type="button" onclick="saveReschedule()" class="px-3 py-1.5 text-xs rounded bg-white text-black font-semibold hover:bg-zinc-200">Actualizar Fecha</button>
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+        <button id="cancelEditModalBtn" type="button" class="px-3.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">Cancelar</button>
+        <button id="saveEditModalBtn" type="button" class="px-3.5 py-1.5 text-xs rounded-lg bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold transition-colors cursor-pointer">Guardar Cambios</button>
       </div>
     </div>
   </div>
 
-  <!-- MODAL: DESVINCULAR SESIÓN -->
-  <div id="logoutModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
-    <div class="w-full max-w-sm rounded border border-zinc-800 bg-[#121215] text-zinc-200 p-5 shadow-2xl">
-      <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
-        <div class="flex items-center gap-2 text-sm font-semibold text-zinc-100">
-          <svg class="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span>Desvincular sesión</span>
-        </div>
-        <button type="button" onclick="closeLogoutModal()" class="text-zinc-500 hover:text-zinc-300">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
+  <!-- MODAL: REPROGRAMAR FECHA -->
+  <div id="rescheduleModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
+    <div class="w-full max-w-md rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 p-5 sm:p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-100 dark:border-zinc-800">
+        <h3 class="text-sm font-semibold">Reprogramar Fecha y Hora</h3>
+        <button id="closeRescheduleModalBtn" type="button" class="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-lg cursor-pointer">&times;</button>
       </div>
-
-      <div id="logoutModalWarning" class="py-4 text-xs text-zinc-400 leading-relaxed">
-        Esta acción cerrará la sesión activa del socket. Deberás escanear un nuevo código QR para volver a programar envíos.
+      <div class="py-4">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1.5">Nueva Fecha y Hora (Hora Local)</label>
+        <input id="rescheduleDatetimeInput" type="datetime-local" class="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400" />
       </div>
-
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
-        <button type="button" onclick="closeLogoutModal()" class="px-3 py-1.5 text-xs rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-800">Cancelar</button>
-        <button type="button" onclick="confirmLogout()" id="confirmLogoutBtn" class="px-3 py-1.5 text-xs rounded bg-red-600 hover:bg-red-500 text-white font-medium">Confirmar desvinculación</button>
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+        <button id="cancelRescheduleModalBtn" type="button" class="px-3.5 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer">Cancelar</button>
+        <button id="saveRescheduleModalBtn" type="button" class="px-3.5 py-1.5 text-xs rounded-lg bg-zinc-900 dark:bg-zinc-100 hover:bg-zinc-800 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold transition-colors cursor-pointer">Confirmar Reprogramación</button>
       </div>
     </div>
   </div>
 
   <!-- TOAST NOTIFICATION -->
-  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+  <div id="toast" class="hidden fixed bottom-5 right-5 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+    <div id="toastBox" class="px-4 py-2.5 rounded-xl text-xs font-sans font-medium border shadow-xl bg-zinc-900 text-white dark:bg-white dark:text-zinc-900"></div>
+  </div>
 
-  <!-- CLIENT-SIDE CONTROLLER -->
+  <!-- JAVASCRIPT DE APLICACIÓN -->
   <script>
-    // State
+    // ESTADO GLOBAL
     let allMessages = [];
+    let allChats = [];
     let currentTab = 'all';
-    let currentSearch = '';
+    let searchQuery = '';
     let currentPage = 1;
-    let currentPageSize = 10;
-    let expandedId = null;
-    let activeDropdownRowId = null;
-    let currentStatus = { connected: false, qr: null, user: null };
-    let attachedFile = null;
+    let pageSize = 10;
+    let selectedIds = new Set();
+    let isConnected = false;
+    let connectedPhone = null;
+    let qrTimerInterval = null;
+    let qrSeconds = 45;
+    let currentEditingId = null;
+    let currentReschedulingId = null;
 
-    // Elements
-    const navStatusDot = document.getElementById('navStatusDot');
-    const navStatusText = document.getElementById('navStatusText');
-    const navPendingCount = document.getElementById('navPendingCount');
-    const navSentCount = document.getElementById('navSentCount');
-    const navUserName = document.getElementById('navUserName');
-    const dropdownPhone = document.getElementById('dropdownPhone');
-    const dropdownPing = document.getElementById('dropdownPing');
-    const statusDynamicContainer = document.getElementById('statusDynamicContainer');
-    const cardStatusBadge = document.getElementById('cardStatusBadge');
-    const cardStatusDot = document.getElementById('cardStatusDot');
-    const cardStatusText = document.getElementById('cardStatusText');
-    const dateTimeInput = document.getElementById('dateTimeInput');
-    const messageText = document.getElementById('messageText');
-    const charCounter = document.getElementById('charCounter');
-    const attachmentPill = document.getElementById('attachmentPill');
-    const attachmentFileName = document.getElementById('attachmentFileName');
-    const messagesTableBody = document.getElementById('messagesTableBody');
-    const tableSearchInput = document.getElementById('tableSearchInput');
-    const pageSizeSelect = document.getElementById('pageSizeSelect');
-    const paginationCountText = document.getElementById('paginationCountText');
-    const prevPageBtn = document.getElementById('prevPageBtn');
-    const nextPageBtn = document.getElementById('nextPageBtn');
-    const toastContainer = document.getElementById('toastContainer');
-    const userMenuBtn = document.getElementById('userMenuBtn');
-    const userMenuDropdown = document.getElementById('userMenuDropdown');
-
-    // Init Date input (+5 mins)
-    function initDateTime() {
-      const d = new Date();
-      d.setMinutes(d.getMinutes() + 5);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const hours = String(d.getHours()).padStart(2, '0');
-      const mins = String(d.getMinutes()).padStart(2, '0');
-      dateTimeInput.value = `${year}-${month}-${day}T${hours}:${mins}`;
-    }
-    initDateTime();
-
-    // User menu dropdown toggle
-    userMenuBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      userMenuDropdown.classList.toggle('hidden');
-    });
-    document.addEventListener('click', () => userMenuDropdown.classList.add('hidden'));
-
-    // Toast helper
-    function showToast(text, type = 'success') {
-      const toast = document.createElement('div');
-      toast.className = `pointer-events-auto px-3 py-2 rounded text-xs font-mono border shadow-2xl animate-in fade-in slide-in-from-bottom-2 ${
-        type === 'success' ? 'bg-[#121215] border-emerald-800 text-emerald-300' : 'bg-[#121215] border-red-800 text-red-300'
-      }`;
-      toast.textContent = text;
-      toastContainer.appendChild(toast);
-      setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 200ms ease';
-        setTimeout(() => toast.remove(), 250);
-      }, 3500);
-    }
-
-    // Quick time chips
-    window.addMinutes = function(mins) {
-      const d = new Date();
-      d.setMinutes(d.getMinutes() + mins);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      const hours = String(d.getHours()).padStart(2, '0');
-      const m = String(d.getMinutes()).padStart(2, '0');
-      dateTimeInput.value = `${year}-${month}-${day}T${hours}:${m}`;
-    };
-
-    window.setTomorrowNine = function() {
-      const d = new Date();
-      d.setDate(d.getDate() + 1);
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      dateTimeInput.value = `${year}-${month}-${day}T09:00`;
-    };
-
-    window.insertVariable = function(varName) {
-      messageText.value += ` {${varName}} `;
-      messageText.focus();
-      updateCharCounter();
-    };
-
-    function updateCharCounter() {
-      charCounter.textContent = `${messageText.value.length} / 1000`;
-    }
-    messageText.addEventListener('input', updateCharCounter);
-
-    // Attachment
-    window.handleFileSelected = function(e) {
-      const file = e.target.files[0];
-      if (file) {
-        attachedFile = file;
-        attachmentFileName.textContent = file.name;
-        attachmentPill.classList.remove('hidden');
+    // TEMA (MODO CLARO POR DEFECTO)
+    function initTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+        document.getElementById('themeIconSun').classList.remove('hidden');
+        document.getElementById('themeIconMoon').classList.add('hidden');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.getElementById('themeIconSun').classList.add('hidden');
+        document.getElementById('themeIconMoon').classList.remove('hidden');
       }
-    };
+    }
 
-    window.removeAttachment = function() {
-      attachedFile = null;
-      document.getElementById('fileInputHidden').value = '';
-      attachmentPill.classList.add('hidden');
-    };
+    document.getElementById('themeToggleBtn').addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', isDark ? 'dark' : 'light');
+      document.getElementById('themeIconSun').classList.toggle('hidden', !isDark);
+      document.getElementById('themeIconMoon').classList.toggle('hidden', isDark);
+    });
 
-    // 1. Polling Status & Debug
+    // TOAST
+    function showToast(msg, type = 'success') {
+      const toast = document.getElementById('toast');
+      const box = document.getElementById('toastBox');
+      box.textContent = msg;
+      if (type === 'error') {
+        box.className = 'px-4 py-2.5 rounded-xl text-xs font-sans font-medium border shadow-xl bg-rose-600 border-rose-700 text-white';
+      } else {
+        box.className = 'px-4 py-2.5 rounded-xl text-xs font-sans font-medium border shadow-xl bg-zinc-900 border-zinc-800 text-white dark:bg-white dark:border-zinc-200 dark:text-zinc-900';
+      }
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 3500);
+    }
+
+    // FORMATEADORES
+    function formatPhone(phone) {
+      if (!phone) return '';
+      const clean = phone.replace(/\D/g, '');
+      if (clean.length === 11 && clean.startsWith('51')) {
+        return `+51 ${clean.slice(2, 5)} ${clean.slice(5, 8)} ${clean.slice(8)}`;
+      }
+      return `+${clean}`;
+    }
+
+    function formatDateTime(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString(undefined, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    }
+
+    // FETCH STATUS
     async function fetchStatus() {
       try {
         const start = performance.now();
         const res = await fetch('/api/status');
-        const ping = Math.round(performance.now() - start);
+        const pingTime = Math.round(performance.now() - start);
         const data = await res.json();
 
-        let user = null;
-        try {
-          const debugRes = await fetch('/api/debug');
-          const debugData = await debugRes.json();
-          user = debugData.user;
-        } catch(e) {}
+        document.getElementById('pingVal').textContent = `${pingTime}ms`;
 
-        currentStatus = {
-          connected: !!data.connected,
-          qr: data.qr,
-          user: user
-        };
+        isConnected = !!data.connected;
+        connectedPhone = data.user?.phone || (data.user?.id ? data.user.id.split(':')[0].replace(/\D/g, '') : null);
 
-        dropdownPing.textContent = `${ping} ms`;
-        renderStatusUI();
+        const navStatusDot = document.getElementById('navStatusDot');
+        const navStatusText = document.getElementById('navStatusText');
+        const navUserBadge = document.getElementById('navUserBadge');
+        const navUserName = document.getElementById('navUserName');
+        const userAvatarLetter = document.getElementById('userAvatarLetter');
+        const dropdownPhone = document.getElementById('dropdownPhone');
+        const disconnectMenuBtn = document.getElementById('disconnectMenuBtn');
+        const navStatsContainer = document.getElementById('navStatsContainer');
+
+        const disconnectedView = document.getElementById('disconnectedView');
+        const connectedView = document.getElementById('connectedView');
+
+        if (isConnected) {
+          // ESTADO CONECTADO
+          navStatusDot.className = 'w-2 h-2 rounded-full bg-emerald-500 shadow-xs';
+          navStatusText.textContent = 'Conectado';
+          navStatusText.className = 'font-medium text-emerald-700 dark:text-emerald-400';
+
+          const formatted = formatPhone(connectedPhone);
+          const userName = data.user?.name || 'Mi Cuenta';
+
+          navUserBadge.textContent = formatted;
+          navUserBadge.classList.remove('hidden');
+
+          navUserName.textContent = userName;
+          userAvatarLetter.textContent = userName ? userName.charAt(0).toUpperCase() : 'W';
+          dropdownPhone.textContent = formatted || 'WhatsApp Conectado';
+
+          disconnectMenuBtn.classList.remove('hidden');
+          navStatsContainer.classList.remove('hidden');
+
+          disconnectedView.classList.add('hidden');
+          connectedView.classList.remove('hidden');
+
+          if (qrTimerInterval) clearInterval(qrTimerInterval);
+        } else {
+          // ESTADO DESCONECTADO (SOLO SE MUESTRA EL QR)
+          navStatusDot.className = `w-2 h-2 rounded-full ${data.qr ? 'bg-amber-500 animate-pulse' : 'bg-zinc-400'}`;
+          navStatusText.textContent = data.qr ? 'Esperando escaneo QR' : 'Desconectado';
+          navStatusText.className = 'font-medium text-zinc-500 dark:text-zinc-400';
+
+          navUserBadge.classList.add('hidden');
+          navUserName.textContent = 'Sesión';
+          userAvatarLetter.textContent = 'W';
+          dropdownPhone.textContent = 'Sin vincular';
+
+          disconnectMenuBtn.classList.add('hidden');
+          navStatsContainer.classList.add('hidden');
+
+          disconnectedView.classList.remove('hidden');
+          connectedView.classList.add('hidden');
+
+          const qrLoadingBox = document.getElementById('qrLoadingBox');
+          const qrReadyBox = document.getElementById('qrReadyBox');
+          const qrImage = document.getElementById('qrImage');
+
+          if (data.qr) {
+            qrImage.src = data.qr;
+            qrLoadingBox.classList.add('hidden');
+            qrReadyBox.classList.remove('hidden');
+
+            if (!qrTimerInterval) {
+              qrSeconds = 45;
+              document.getElementById('qrTimer').textContent = qrSeconds;
+              qrTimerInterval = setInterval(() => {
+                qrSeconds--;
+                document.getElementById('qrTimer').textContent = qrSeconds;
+                if (qrSeconds <= 0) {
+                  clearInterval(qrTimerInterval);
+                  qrTimerInterval = null;
+                  fetchStatus();
+                }
+              }, 1000);
+            }
+          } else {
+            qrLoadingBox.classList.remove('hidden');
+            qrReadyBox.classList.add('hidden');
+          }
+        }
       } catch (e) {
-        currentStatus.connected = false;
-        renderStatusUI();
+        console.error('Error en fetchStatus:', e);
       }
     }
 
-    function renderStatusUI() {
-      if (currentStatus.connected) {
-        navStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500';
-        navStatusText.textContent = 'En línea';
-        navStatusText.className = 'font-mono text-emerald-400 font-medium';
-
-        cardStatusBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border bg-emerald-950/40 border-emerald-900/50 text-emerald-400';
-        cardStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
-        cardStatusText.textContent = 'Activo';
-
-        const rawId = currentStatus.user?.id || '';
-        const phone = rawId.split(':')[0].replace(/\D/g, '');
-        const name = currentStatus.user?.name || 'Cuenta Vinculada';
-        const formattedPhone = phone ? `+${phone}` : 'Conectado';
-
-        navUserName.textContent = name;
-        dropdownPhone.textContent = formattedPhone;
-
-        statusDynamicContainer.innerHTML = `
-          <div class="flex flex-col gap-4 py-2">
-            <div class="flex items-center gap-3">
-              <div class="w-11 h-11 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center font-mono font-bold text-sm text-zinc-200 shrink-0">
-                ${name.charAt(0).toUpperCase()}
-              </div>
-              <div class="min-w-0 flex-1">
-                <div class="text-sm font-medium text-zinc-100 truncate">${escapeHtml(name)}</div>
-                <div class="text-xs font-mono text-zinc-400">${formattedPhone}</div>
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800/60 text-[11px] font-mono text-zinc-400">
-              <div class="flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                <span>Multi-dispositivo</span>
-              </div>
-              <div class="flex items-center gap-1.5">
-                <svg class="w-3.5 h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                <span>Socket listo</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              onclick="openLogoutModal()"
-              class="mt-2 w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-colors"
-            >
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
-              <span>Desconectar socket</span>
-            </button>
-          </div>
-        `;
-      } else if (currentStatus.qr) {
-        navStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
-        navStatusText.textContent = 'Esperando QR';
-        navStatusText.className = 'font-mono text-amber-400 font-medium';
-
-        cardStatusBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border bg-amber-950/40 border-amber-900/50 text-amber-400';
-        cardStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
-        cardStatusText.textContent = 'Escaneo Requerido';
-
-        statusDynamicContainer.innerHTML = `
-          <div class="flex flex-col items-center justify-center py-2 gap-3">
-            <div class="p-2 rounded bg-white border border-zinc-300 shadow-sm inline-block">
-              <img src="${currentStatus.qr}" alt="Código QR de WhatsApp" class="w-44 h-44 block object-contain" />
-            </div>
-            <div class="flex items-center justify-between w-full px-1 text-xs text-zinc-400 font-mono">
-              <span>Escanea con tu WhatsApp</span>
-              <button type="button" onclick="fetchStatus()" class="inline-flex items-center gap-1 text-zinc-300 hover:text-white transition-colors">
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-                <span>Recargar</span>
-              </button>
-            </div>
-          </div>
-        `;
-      } else {
-        navStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-zinc-600';
-        navStatusText.textContent = 'Desconectado';
-        navStatusText.className = 'font-mono text-zinc-400 font-medium';
-
-        cardStatusBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border bg-zinc-900 border-zinc-800 text-zinc-400';
-        cardStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-zinc-500';
-        cardStatusText.textContent = 'Inactivo';
-
-        statusDynamicContainer.innerHTML = `
-          <div class="py-8 flex flex-col items-center justify-center text-center gap-2 text-zinc-500">
-            <svg class="w-5 h-5 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-            <span class="text-xs font-mono">Iniciando socket...</span>
-          </div>
-        `;
-      }
-    }
-
-    // 2. Polling Messages
-    async function fetchMessages() {
-      const spin = document.getElementById('refreshSpinIcon');
-      if (spin) spin.classList.add('animate-spin');
+    // FETCH CHATS / CONTACTOS RECIENTES
+    async function fetchChats() {
+      if (!isConnected) return;
       try {
-        const res = await fetch('/api/messages');
+        const url = connectedPhone ? `/api/chats?senderPhone=${connectedPhone}` : '/api/chats';
+        const res = await fetch(url);
+        const json = await res.json();
+        allChats = json.data || [];
+        renderChats();
+      } catch (e) {
+        console.error('Error en fetchChats:', e);
+      }
+    }
+
+    function renderChats() {
+      const container = document.getElementById('chatsListContainer');
+      const badge = document.getElementById('chatsCountBadge');
+      const search = (document.getElementById('chatSearchInput').value || '').toLowerCase().trim();
+
+      const filtered = allChats.filter((c) => {
+        if (!search) return true;
+        return (c.name && c.name.toLowerCase().includes(search)) ||
+               c.phone.includes(search) ||
+               (c.lastMessage && c.lastMessage.toLowerCase().includes(search));
+      });
+
+      badge.textContent = allChats.length;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="p-8 text-center text-xs text-zinc-400 font-sans space-y-1">
+            <svg class="w-6 h-6 mx-auto text-zinc-300 dark:text-zinc-600 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <p>No se encontraron contactos</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map((c) => {
+        const initial = c.name ? c.name.charAt(0).toUpperCase() : '#';
+        const displayName = c.name || formatPhone(c.phone);
+        const phoneFormatted = formatPhone(c.phone);
+        const timeStr = c.timestamp ? new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+
+        return `
+          <button
+            type="button"
+            class="chat-contact-item w-full text-left p-3.5 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
+            data-phone="${c.phone}"
+            data-name="${c.name || ''}"
+          >
+            <div class="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+              ${initial}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">${displayName}</span>
+                <span class="text-[10px] text-zinc-400 shrink-0 font-mono ml-1">${timeStr}</span>
+              </div>
+              <div class="text-[11px] font-mono text-zinc-500 truncate">${phoneFormatted}</div>
+              ${c.lastMessage ? `<div class="text-[11px] text-zinc-400 truncate mt-0.5">${c.lastMessage}</div>` : ''}
+            </div>
+          </button>
+        `;
+      }).join('');
+
+      document.querySelectorAll('.chat-contact-item').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const phone = btn.getAttribute('data-phone');
+          const name = btn.getAttribute('data-name');
+          selectContactForForm({ phone, name });
+        });
+      });
+    }
+
+    function selectContactForForm({ phone, name }) {
+      const phoneInput = document.getElementById('phoneInput');
+      const prefixSelect = document.getElementById('countryPrefixSelect');
+      const pill = document.getElementById('selectedContactPill');
+      const nameSpan = document.getElementById('selectedContactName');
+
+      let raw = phone.replace(/\D/g, '');
+      if (raw.startsWith('51') && raw.length === 11) {
+        prefixSelect.value = '51';
+        phoneInput.value = raw.slice(2);
+      } else if (raw.startsWith('1') && raw.length === 11) {
+        prefixSelect.value = '1';
+        phoneInput.value = raw.slice(1);
+      } else {
+        phoneInput.value = raw;
+      }
+
+      if (name) {
+        nameSpan.textContent = `Contacto: ${name}`;
+        pill.classList.remove('hidden');
+        pill.classList.add('inline-flex');
+      } else {
+        pill.classList.add('hidden');
+        pill.classList.remove('inline-flex');
+      }
+
+      document.getElementById('messageInput').focus();
+      showToast(`Contacto seleccionado: ${name || formatPhone(phone)}`);
+    }
+
+    document.getElementById('clearSelectedContactBtn').addEventListener('click', () => {
+      const pill = document.getElementById('selectedContactPill');
+      pill.classList.add('hidden');
+      pill.classList.remove('inline-flex');
+    });
+
+    document.getElementById('chatSearchInput').addEventListener('input', renderChats);
+
+    // SIDEBAR TOGGLE
+    document.getElementById('toggleSidebarBtn').addEventListener('click', () => {
+      document.getElementById('recentChatsSidebar').classList.add('hidden');
+      document.getElementById('sidebarCollapsedBar').classList.remove('hidden');
+    });
+
+    document.getElementById('reopenSidebarBtn').addEventListener('click', () => {
+      document.getElementById('recentChatsSidebar').classList.remove('hidden');
+      document.getElementById('sidebarCollapsedBar').classList.add('hidden');
+    });
+
+    // FETCH MESSAGES (FILTRADO POR EL REMITENTE CONECTADO)
+    async function fetchMessages() {
+      if (!isConnected) return;
+      try {
+        const url = connectedPhone ? `/api/messages?senderPhone=${connectedPhone}` : '/api/messages';
+        const res = await fetch(url);
         const json = await res.json();
         allMessages = json.data || [];
-        renderTable();
         updateStats();
+        renderTable();
       } catch (e) {
-        showToast('Error al cargar mensajes', 'error');
-      } finally {
-        if (spin) spin.classList.remove('animate-spin');
+        console.error('Error en fetchMessages:', e);
       }
     }
 
@@ -682,238 +803,280 @@
       const today = new Date();
       const sentToday = allMessages.filter(m => {
         if (m.status !== 'ENVIADO' || !m.sentAt) return false;
-        const s = new Date(m.sentAt);
-        return s.getDate() === today.getDate() && s.getMonth() === today.getMonth() && s.getFullYear() === today.getFullYear();
+        const d = new Date(m.sentAt);
+        return d.getDate() === today.getDate() &&
+               d.getMonth() === today.getMonth() &&
+               d.getFullYear() === today.getFullYear();
       }).length;
 
-      navPendingCount.textContent = pending;
-      navSentCount.textContent = sentToday;
+      document.getElementById('navPendingCount').textContent = pending;
+      document.getElementById('navSentCount').textContent = sentToday;
     }
 
-    // Render Table Rows
-    function renderTable() {
-      let filtered = allMessages.filter(msg => {
+    // RENDER TABLA Y BULK ACTIONS
+    function getFilteredMessages() {
+      return allMessages.filter((msg) => {
         if (currentTab === 'pending' && msg.status !== 'PENDIENTE' && msg.status !== 'PROCESANDO') return false;
         if (currentTab === 'sent' && msg.status !== 'ENVIADO') return false;
         if (currentTab === 'error' && msg.status !== 'ERROR') return false;
 
-        if (currentSearch.trim()) {
-          const q = currentSearch.toLowerCase();
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
           return msg.phone.toLowerCase().includes(q) || msg.message.toLowerCase().includes(q);
         }
         return true;
       });
+    }
 
-      const total = filtered.length;
-      const totalPages = Math.max(1, Math.ceil(total / currentPageSize));
+    function renderTable() {
+      const filtered = getFilteredMessages();
+      const tbody = document.getElementById('messagesTableBody');
+      const totalCountText = document.getElementById('totalCountText');
+      const pageIndicator = document.getElementById('pageIndicator');
+      const prevBtn = document.getElementById('prevPageBtn');
+      const nextBtn = document.getElementById('nextPageBtn');
+
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
       if (currentPage > totalPages) currentPage = totalPages;
 
-      const start = (currentPage - 1) * currentPageSize;
-      const pageItems = filtered.slice(start, start + currentPageSize);
+      totalCountText.textContent = `Total: ${filtered.length} mensajes`;
+      pageIndicator.textContent = `Página ${currentPage} de ${totalPages}`;
+      prevBtn.disabled = currentPage <= 1;
+      nextBtn.disabled = currentPage >= totalPages;
 
-      paginationCountText.textContent = total === 0 ? '0 de 0' : `${start + 1}-${Math.min(start + currentPageSize, total)} de ${total}`;
-      prevPageBtn.disabled = currentPage <= 1;
-      nextPageBtn.disabled = currentPage >= totalPages;
+      const start = (currentPage - 1) * pageSize;
+      const pageMessages = filtered.slice(start, start + pageSize);
 
-      if (pageItems.length === 0) {
-        messagesTableBody.innerHTML = `
+      // Actualizar Bulk Actions Bar
+      const bulkBar = document.getElementById('bulkActionsBar');
+      const selectedCountText = document.getElementById('selectedCountText');
+      const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+
+      if (selectedIds.size > 0) {
+        bulkBar.classList.remove('hidden');
+        bulkBar.classList.add('flex');
+        selectedCountText.textContent = `${selectedIds.size} mensaje(s) seleccionado(s)`;
+      } else {
+        bulkBar.classList.add('hidden');
+        bulkBar.classList.remove('flex');
+      }
+
+      selectAllCheckbox.checked = pageMessages.length > 0 && pageMessages.every(m => selectedIds.has(m._id));
+
+      if (pageMessages.length === 0) {
+        tbody.innerHTML = `
           <tr>
-            <td colspan="5" class="py-12 text-center text-zinc-600 font-mono text-xs">
-              ${currentSearch ? 'No se encontraron mensajes con el criterio buscado.' : 'No hay mensajes registrados.'}
+            <td colspan="6" class="py-14 text-center text-zinc-400 font-sans text-sm">
+              ${searchQuery ? 'No se encontraron mensajes con el filtro indicado.' : 'No hay mensajes registrados.'}
             </td>
           </tr>
         `;
         return;
       }
 
-      messagesTableBody.innerHTML = pageItems.map(msg => {
-        const isExp = expandedId === msg._id;
-        const isPending = msg.status === 'PENDIENTE' || msg.status === 'PROCESANDO';
-        const isError = msg.status === 'ERROR';
-
-        const scheduleFormatted = new Date(msg.scheduledAt).toLocaleString(undefined, {
-          year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true
-        });
+      tbody.innerHTML = pageMessages.map((m) => {
+        const isChecked = selectedIds.has(m._id);
+        let badgeHtml = '';
+        if (m.status === 'ENVIADO') {
+          badgeHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50">Enviado</span>';
+        } else if (m.status === 'PENDIENTE') {
+          badgeHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-900/50">En Cola</span>';
+        } else if (m.status === 'PROCESANDO') {
+          badgeHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/50">Procesando</span>';
+        } else if (m.status === 'ERROR') {
+          badgeHtml = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50">Error</span>';
+        }
 
         return `
-          <tr class="hover:bg-zinc-900/30 transition-colors">
-            <td class="py-2.5 px-3 text-zinc-200 font-medium whitespace-nowrap font-mono">
-              +${msg.phone}
+          <tr class="transition-colors ${isChecked ? 'bg-zinc-100/70 dark:bg-zinc-800/50' : 'hover:bg-zinc-50/80 dark:hover:bg-zinc-800/30'}">
+            <td class="py-3.5 px-4 text-center">
+              <input type="checkbox" class="row-checkbox rounded border-zinc-300 text-zinc-900 cursor-pointer" data-id="${m._id}" ${isChecked ? 'checked' : ''} />
             </td>
-            <td class="py-2.5 px-3 max-w-xs md:max-w-md">
-              <div onclick="toggleExpand('${msg._id}')" class="font-sans cursor-pointer text-zinc-300 text-xs leading-relaxed ${isExp ? 'break-words' : 'truncate'}" title="Clic para expandir texto">
-                ${escapeHtml(msg.message)}
-              </div>
+            <td class="py-3.5 px-4 whitespace-nowrap font-mono text-xs text-zinc-800 dark:text-zinc-200">
+              ${formatPhone(m.phone)}
             </td>
-            <td class="py-2.5 px-3 text-zinc-400 whitespace-nowrap text-[11px] font-mono">
-              ${scheduleFormatted}
+            <td class="py-3.5 px-4 max-w-xs md:max-w-md">
+              <div class="text-sm text-zinc-800 dark:text-zinc-200 leading-relaxed truncate" title="${m.message}">${m.message}</div>
+              ${m.error ? `<div class="text-xs text-rose-600 dark:text-rose-400 font-mono mt-0.5 truncate">${m.error}</div>` : ''}
             </td>
-            <td class="py-2.5 px-3 whitespace-nowrap font-mono">
-              ${msg.status === 'ENVIADO' ? `
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-emerald-950/30 border border-emerald-900/40 text-emerald-400">
-                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Enviado
-                </span>
-              ` : isPending ? `
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-amber-950/30 border border-amber-900/40 text-amber-400">
-                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>En cola
-                </span>
-              ` : `
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-red-950/30 border border-red-900/40 text-red-400" title="${escapeHtml(msg.error || '')}">
-                  <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  Error
-                </span>
-              `}
+            <td class="py-3.5 px-4 whitespace-nowrap text-xs font-mono text-zinc-600 dark:text-zinc-400">
+              <div>${formatDateTime(m.scheduledAt)}</div>
+              ${m.sentAt ? `<div class="text-[11px] text-zinc-400 mt-0.5">Enviado: ${formatDateTime(m.sentAt)}</div>` : ''}
             </td>
-            <td class="py-2.5 px-3 text-right whitespace-nowrap relative font-mono">
-              <div class="inline-flex items-center justify-end gap-1">
-                ${isPending ? `
-                  <button type="button" onclick="sendNow('${msg._id}')" class="px-2 py-1 rounded border border-zinc-800 text-[11px] text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors" title="Enviar inmediatamente">Disparar</button>
-                ` : isError ? `
-                  <button type="button" onclick="retryMessage('${msg._id}')" class="px-2 py-1 rounded border border-zinc-800 text-[11px] text-amber-400 hover:bg-amber-950/30 transition-colors" title="Reintentar">Reintentar</button>
-                ` : ''}
-
-                <div class="relative inline-block">
-                  <button type="button" onclick="toggleDropdownRow(event, '${msg._id}')" class="w-7 h-7 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
-                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+            <td class="py-3.5 px-4 whitespace-nowrap">
+              ${badgeHtml}
+            </td>
+            <td class="py-3.5 px-4 text-right whitespace-nowrap">
+              <div class="flex items-center justify-end gap-1">
+                ${m.status === 'PENDIENTE' ? `
+                  <button type="button" class="action-send-now p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer" title="Disparar envío inmediato" data-id="${m._id}">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                   </button>
-
-                  <div id="rowDropdown-${msg._id}" class="hidden absolute right-0 mt-1 w-40 rounded border border-zinc-800 bg-[#121215] py-1 shadow-2xl z-40 text-xs text-left">
-                    ${isPending ? `
-                      <button type="button" onclick="openEditModal('${msg._id}')" class="w-full px-3 py-1.5 flex items-center gap-2 text-zinc-300 hover:bg-zinc-800 transition-colors">
-                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                        <span>Editar texto</span>
-                      </button>
-                      <button type="button" onclick="openRescheduleModal('${msg._id}', '${msg.scheduledAt}')" class="w-full px-3 py-1.5 flex items-center gap-2 text-zinc-300 hover:bg-zinc-800 transition-colors">
-                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        <span>Reprogramar</span>
-                      </button>
-                      <div class="h-[1px] bg-zinc-800 my-1"></div>
-                    ` : ''}
-                    <button type="button" onclick="deleteMessage('${msg._id}')" class="w-full px-3 py-1.5 flex items-center gap-2 text-red-400 hover:bg-red-950/30 transition-colors">
-                      <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-                      <span>Eliminar</span>
-                    </button>
-                  </div>
-                </div>
+                ` : ''}
+                ${m.status === 'ERROR' ? `
+                  <button type="button" class="action-retry p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer" title="Reintentar envío" data-id="${m._id}">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                  </button>
+                ` : ''}
+                <button type="button" class="action-edit p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer" title="Editar texto" data-id="${m._id}">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                </button>
+                <button type="button" class="action-reschedule p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer" title="Reprogramar fecha" data-id="${m._id}">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                </button>
+                <button type="button" class="action-delete p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-950/30 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 cursor-pointer" title="Eliminar mensaje" data-id="${m._id}">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                </button>
               </div>
             </td>
           </tr>
         `;
       }).join('');
+
+      // Listeners de checkboxes de fila
+      document.querySelectorAll('.row-checkbox').forEach((cb) => {
+        cb.addEventListener('change', (e) => {
+          const id = e.target.getAttribute('data-id');
+          if (e.target.checked) selectedIds.add(id);
+          else selectedIds.delete(id);
+          renderTable();
+        });
+      });
+
+      // Listeners de acciones
+      document.querySelectorAll('.action-send-now').forEach(btn => {
+        btn.addEventListener('click', () => sendNowMessage(btn.getAttribute('data-id')));
+      });
+      document.querySelectorAll('.action-retry').forEach(btn => {
+        btn.addEventListener('click', () => retryMessage(btn.getAttribute('data-id')));
+      });
+      document.querySelectorAll('.action-edit').forEach(btn => {
+        btn.addEventListener('click', () => openEditModal(btn.getAttribute('data-id')));
+      });
+      document.querySelectorAll('.action-reschedule').forEach(btn => {
+        btn.addEventListener('click', () => openRescheduleModal(btn.getAttribute('data-id')));
+      });
+      document.querySelectorAll('.action-delete').forEach(btn => {
+        btn.addEventListener('click', () => deleteMessage(btn.getAttribute('data-id')));
+      });
     }
 
-    window.toggleExpand = function(id) {
-      expandedId = (expandedId === id) ? null : id;
-      renderTable();
-    };
+    // SELECT ALL CHECKBOX
+    document.getElementById('selectAllCheckbox').addEventListener('change', (e) => {
+      const filtered = getFilteredMessages();
+      const start = (currentPage - 1) * pageSize;
+      const pageMessages = filtered.slice(start, start + pageSize);
 
-    window.toggleDropdownRow = function(e, id) {
-      e.stopPropagation();
-      document.querySelectorAll('[id^="rowDropdown-"]').forEach(el => {
-        if (el.id !== `rowDropdown-${id}`) el.classList.add('hidden');
-      });
-      const d = document.getElementById(`rowDropdown-${id}`);
-      if (d) d.classList.toggle('hidden');
-    };
-    document.addEventListener('click', () => {
-      document.querySelectorAll('[id^="rowDropdown-"]').forEach(el => el.classList.add('hidden'));
+      if (e.target.checked) {
+        pageMessages.forEach(m => selectedIds.add(m._id));
+      } else {
+        pageMessages.forEach(m => selectedIds.delete(m._id));
+      }
+      renderTable();
     });
 
-    // Tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => {
-          b.className = 'tab-btn px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300';
+    document.getElementById('clearSelectionBtn').addEventListener('click', () => {
+      selectedIds.clear();
+      renderTable();
+    });
+
+    // BULK SEND NOW
+    document.getElementById('bulkSendNowBtn').addEventListener('click', async () => {
+      if (selectedIds.size === 0) return;
+      if (!confirm(`¿Disparar envío inmediato para los ${selectedIds.size} mensajes seleccionados?`)) return;
+
+      try {
+        const res = await fetch('/api/messages/bulk-send-now', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: Array.from(selectedIds) })
         });
-        btn.className = 'tab-btn px-2.5 py-1 rounded font-medium bg-zinc-800 text-zinc-100';
-        currentTab = btn.dataset.tab;
+        const json = await res.json();
+        showToast(json.message || `${selectedIds.size} mensajes activados para envío`);
+        selectedIds.clear();
+        fetchMessages();
+      } catch (e) {
+        showToast('Error en disparo masivo', 'error');
+      }
+    });
+
+    // BULK DELETE
+    document.getElementById('bulkDeleteBtn').addEventListener('click', async () => {
+      if (selectedIds.size === 0) return;
+      if (!confirm(`¿Estás seguro de eliminar los ${selectedIds.size} mensajes seleccionados?`)) return;
+
+      try {
+        const res = await fetch('/api/messages/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: Array.from(selectedIds) })
+        });
+        const json = await res.json();
+        showToast(json.message || `${selectedIds.size} mensajes eliminados`);
+        selectedIds.clear();
+        fetchMessages();
+      } catch (e) {
+        showToast('Error al eliminar mensajes', 'error');
+      }
+    });
+
+    // FILTROS Y TABS
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        currentTab = btn.getAttribute('data-tab');
         currentPage = 1;
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.className = 'tab-btn px-3 py-1 rounded-md font-medium transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200';
+        });
+        btn.className = 'tab-btn px-3 py-1 rounded-md font-medium transition-colors cursor-pointer bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs';
         renderTable();
       });
     });
 
-    tableSearchInput.addEventListener('input', (e) => {
-      currentSearch = e.target.value;
+    document.getElementById('tableSearchInput').addEventListener('input', (e) => {
+      searchQuery = e.target.value;
       currentPage = 1;
       renderTable();
     });
 
-    pageSizeSelect.addEventListener('change', (e) => {
-      currentPageSize = Number(e.target.value);
+    document.getElementById('pageSizeSelect').addEventListener('change', (e) => {
+      pageSize = Number(e.target.value);
       currentPage = 1;
       renderTable();
     });
 
-    prevPageBtn.addEventListener('click', () => {
+    document.getElementById('prevPageBtn').addEventListener('click', () => {
       if (currentPage > 1) {
         currentPage--;
         renderTable();
       }
     });
 
-    nextPageBtn.addEventListener('click', () => {
-      currentPage++;
-      renderTable();
-    });
-
-    document.getElementById('tableRefreshBtn').addEventListener('click', fetchMessages);
-
-    // Form submit
-    document.getElementById('schedulerForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const dial = document.getElementById('countrySelect').value;
-      const rawNum = document.getElementById('phoneInput').value.replace(/\D/g, '');
-      const rawDate = dateTimeInput.value;
-      const text = messageText.value.trim();
-
-      if (!rawNum || !rawDate || !text) {
-        showToast('Completa todos los campos requeridos', 'error');
-        return;
-      }
-
-      const utcDate = new Date(rawDate).toISOString();
-      const btn = document.getElementById('submitFormBtn');
-      btn.disabled = true;
-
-      try {
-        const res = await fetch('/api/messages', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: `${dial}${rawNum}`,
-            scheduledAt: utcDate,
-            message: text
-          })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Error al programar');
-
-        showToast('Mensaje programado exitosamente');
-        messageText.value = '';
-        updateCharCounter();
-        removeAttachment();
-        initDateTime();
-        fetchMessages();
-      } catch (err) {
-        showToast(err.message, 'error');
-      } finally {
-        btn.disabled = false;
+    document.getElementById('nextPageBtn').addEventListener('click', () => {
+      const filtered = getFilteredMessages();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderTable();
       }
     });
 
-    // Actions
-    window.sendNow = async function(id) {
+    document.getElementById('refreshTableBtn').addEventListener('click', fetchMessages);
+    document.getElementById('reloadQrBtn').addEventListener('click', fetchStatus);
+
+    // ACCIONES INDIVIDUALES
+    async function sendNowMessage(id) {
       try {
         const res = await fetch(`/api/messages/${id}/send-now`, { method: 'POST' });
-        if (!res.ok) throw new Error('Error al forzar envío');
-        showToast('Envío inmediato procesándose');
+        if (!res.ok) throw new Error('Error al enviar');
+        showToast('Envío inmediato puesto en marcha');
         fetchMessages();
       } catch (e) {
         showToast(e.message, 'error');
       }
-    };
+    }
 
-    window.retryMessage = async function(id) {
+    async function retryMessage(id) {
       try {
         const res = await fetch(`/api/messages/${id}/retry`, { method: 'POST' });
         if (!res.ok) throw new Error('Error al reintentar');
@@ -922,139 +1085,234 @@
       } catch (e) {
         showToast(e.message, 'error');
       }
-    };
+    }
 
-    window.deleteMessage = async function(id) {
-      if (!confirm('¿Deseas cancelar y eliminar este registro?')) return;
+    async function deleteMessage(id) {
+      if (!confirm('¿Eliminar este mensaje programado?')) return;
       try {
         const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Error al eliminar');
-        showToast('Registro eliminado');
+        showToast('Mensaje eliminado');
+        selectedIds.delete(id);
         fetchMessages();
       } catch (e) {
         showToast(e.message, 'error');
       }
-    };
+    }
 
-    // Edit Modal
-    window.openEditModal = function(id) {
-      const found = allMessages.find(m => m._id === id);
-      if (!found) return;
-      document.getElementById('editModalId').value = id;
-      document.getElementById('editModalText').value = found.message;
+    // MODAL EDITAR
+    function openEditModal(id) {
+      const msg = allMessages.find(m => m._id === id);
+      if (!msg) return;
+      currentEditingId = id;
+      document.getElementById('editMessageTextarea').value = msg.message;
       document.getElementById('editModal').classList.remove('hidden');
-    };
-    window.closeEditModal = function() {
+    }
+
+    document.getElementById('closeEditModalBtn').addEventListener('click', () => {
       document.getElementById('editModal').classList.add('hidden');
-    };
-    window.saveEditMessage = async function() {
-      const id = document.getElementById('editModalId').value;
-      const text = document.getElementById('editModalText').value.trim();
-      if (!id || !text) return;
+    });
+    document.getElementById('cancelEditModalBtn').addEventListener('click', () => {
+      document.getElementById('editModal').classList.add('hidden');
+    });
+
+    document.getElementById('saveEditModalBtn').addEventListener('click', async () => {
+      const newText = document.getElementById('editMessageTextarea').value.trim();
+      if (!newText || !currentEditingId) return;
+
       try {
-        const res = await fetch(`/api/messages/${id}`, {
+        const res = await fetch(`/api/messages/${currentEditingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text })
+          body: JSON.stringify({ message: newText })
         });
-        if (!res.ok) throw new Error('Error al editar');
-        showToast('Mensaje editado');
-        closeEditModal();
+        if (!res.ok) throw new Error('Error al guardar');
+        showToast('Mensaje actualizado');
+        document.getElementById('editModal').classList.add('hidden');
         fetchMessages();
       } catch (e) {
         showToast(e.message, 'error');
       }
-    };
+    });
 
-    // Reschedule Modal
-    window.openRescheduleModal = function(id, curIso) {
-      document.getElementById('rescheduleModalId').value = id;
-      const d = new Date(curIso);
+    // MODAL REPROGRAMAR
+    function openRescheduleModal(id) {
+      const msg = allMessages.find(m => m._id === id);
+      if (!msg) return;
+      currentReschedulingId = id;
+
+      const d = new Date(msg.scheduledAt);
       const year = d.getFullYear();
       const month = String(d.getMonth() + 1).padStart(2, '0');
       const day = String(d.getDate()).padStart(2, '0');
       const hours = String(d.getHours()).padStart(2, '0');
       const mins = String(d.getMinutes()).padStart(2, '0');
-      document.getElementById('rescheduleModalDateTime').value = `${year}-${month}-${day}T${hours}:${mins}`;
+      document.getElementById('rescheduleDatetimeInput').value = `${year}-${month}-${day}T${hours}:${mins}`;
+
       document.getElementById('rescheduleModal').classList.remove('hidden');
-    };
-    window.closeRescheduleModal = function() {
+    }
+
+    document.getElementById('closeRescheduleModalBtn').addEventListener('click', () => {
       document.getElementById('rescheduleModal').classList.add('hidden');
-    };
-    window.saveReschedule = async function() {
-      const id = document.getElementById('rescheduleModalId').value;
-      const raw = document.getElementById('rescheduleModalDateTime').value;
-      if (!id || !raw) return;
+    });
+    document.getElementById('cancelRescheduleModalBtn').addEventListener('click', () => {
+      document.getElementById('rescheduleModal').classList.add('hidden');
+    });
+
+    document.getElementById('saveRescheduleModalBtn').addEventListener('click', async () => {
+      const val = document.getElementById('rescheduleDatetimeInput').value;
+      if (!val || !currentReschedulingId) return;
+
       try {
-        const utcDate = new Date(raw).toISOString();
-        const res = await fetch(`/api/messages/${id}`, {
+        const utcDate = new Date(val).toISOString();
+        const res = await fetch(`/api/messages/${currentReschedulingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ scheduledAt: utcDate })
         });
         if (!res.ok) throw new Error('Error al reprogramar');
-        showToast('Fecha de envío actualizada');
-        closeRescheduleModal();
+        showToast('Fecha reprogramada con éxito');
+        document.getElementById('rescheduleModal').classList.add('hidden');
         fetchMessages();
       } catch (e) {
         showToast(e.message, 'error');
       }
-    };
+    });
 
-    // Logout Modal
-    window.openLogoutModal = function() {
-      const pending = allMessages.filter(m => m.status === 'PENDIENTE' || m.status === 'PROCESANDO').length;
-      const warn = document.getElementById('logoutModalWarning');
-      if (pending > 0) {
-        warn.innerHTML = `<div class="p-2 rounded bg-amber-950/20 border border-amber-900/40 text-amber-300 mb-2">Atención: Tienes <strong>${pending} mensaje(s) pendiente(s)</strong> en cola. Si desvinculas, no se enviarán hasta volver a vincular.</div>Esta acción cerrará la sesión del socket y eliminará las credenciales activas.`;
-      } else {
-        warn.textContent = 'Esta acción cerrará la sesión activa del socket. Deberás escanear un nuevo código QR para volver a programar envíos.';
+    // FORMULARIO DE PROGRAMACIÓN
+    function initSchedulerForm() {
+      const dtInput = document.getElementById('datetimeInput');
+      const d = new Date();
+      d.setMinutes(d.getMinutes() + 5);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      dtInput.value = `${year}-${month}-${day}T${hours}:${mins}`;
+
+      // Chips de tiempo rápido
+      document.querySelectorAll('.quick-time-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const minsToAdd = Number(btn.getAttribute('data-mins'));
+          const nd = new Date();
+          nd.setMinutes(nd.getMinutes() + minsToAdd);
+          const y = nd.getFullYear();
+          const m = String(nd.getMonth() + 1).padStart(2, '0');
+          const dy = String(nd.getDate()).padStart(2, '0');
+          const h = String(nd.getHours()).padStart(2, '0');
+          const mn = String(nd.getMinutes()).padStart(2, '0');
+          dtInput.value = `${y}-${m}-${dy}T${h}:${mn}`;
+        });
+      });
+
+      document.getElementById('tomorrowChip').addEventListener('click', () => {
+        const nd = new Date();
+        nd.setDate(nd.getDate() + 1);
+        const y = nd.getFullYear();
+        const m = String(nd.getMonth() + 1).padStart(2, '0');
+        const dy = String(nd.getDate()).padStart(2, '0');
+        dtInput.value = `${y}-${m}-${dy}T09:00`;
+      });
+
+      // Variables en textarea
+      const msgInput = document.getElementById('messageInput');
+      const charCounter = document.getElementById('charCounter');
+
+      document.querySelectorAll('.insert-var-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const v = btn.getAttribute('data-var');
+          msgInput.value = `${msgInput.value} {${v}} `;
+          charCounter.textContent = `${msgInput.value.length} / 1000 caracteres`;
+          msgInput.focus();
+        });
+      });
+
+      msgInput.addEventListener('input', () => {
+        charCounter.textContent = `${msgInput.value.length} / 1000 caracteres`;
+      });
+
+      // Submit
+      document.getElementById('schedulerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dial = document.getElementById('countryPrefixSelect').value;
+        const phoneRaw = document.getElementById('phoneInput').value.replace(/\D/g, '');
+        const fullPhone = phoneRaw.startsWith(dial) ? phoneRaw : `${dial}${phoneRaw}`;
+        const message = msgInput.value.trim();
+        const scheduledAt = new Date(dtInput.value).toISOString();
+
+        if (!phoneRaw || !message) return;
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span>Guardando mensaje...</span>';
+
+        try {
+          const res = await fetch('/api/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: fullPhone, message, scheduledAt })
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error || 'Error al programar');
+
+          showToast('Mensaje programado exitosamente');
+          msgInput.value = '';
+          charCounter.textContent = '0 / 1000 caracteres';
+          document.getElementById('selectedContactPill').classList.add('hidden');
+          document.getElementById('selectedContactPill').classList.remove('inline-flex');
+
+          fetchMessages();
+          fetchChats();
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            <span>Programar Envío</span>
+          `;
+        }
+      });
+    }
+
+    // MENÚ DE USUARIO Y LOGOUT
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
+
+    userMenuBtn.addEventListener('click', () => {
+      userMenuDropdown.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!userMenuBtn.contains(e.target) && !userMenuDropdown.contains(e.target)) {
+        userMenuDropdown.classList.add('hidden');
       }
-      document.getElementById('logoutModal').classList.remove('hidden');
-    };
-    window.closeLogoutModal = function() {
-      document.getElementById('logoutModal').classList.add('hidden');
-    };
-    window.confirmLogout = async function() {
-      const btn = document.getElementById('confirmLogoutBtn');
-      btn.disabled = true;
-      btn.textContent = 'Desvinculando...';
+    });
+
+    document.getElementById('disconnectMenuBtn').addEventListener('click', async () => {
+      userMenuDropdown.classList.add('hidden');
+      if (!confirm('¿Deseas desvincular la sesión de WhatsApp activa?')) return;
       try {
         const res = await fetch('/api/session/logout', { method: 'POST' });
         if (!res.ok) throw new Error('Error al desvincular');
-        showToast('Sesión desvinculada');
-        closeLogoutModal();
+        showToast('Sesión desvinculada exitosamente');
         fetchStatus();
       } catch (e) {
         showToast(e.message, 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Confirmar desvinculación';
       }
-    };
-    document.getElementById('menuLogoutBtn').addEventListener('click', () => {
-      userMenuDropdown.classList.add('hidden');
-      openLogoutModal();
     });
 
-    // Theme Toggle
-    const themeToggleBtn = document.getElementById('themeToggleBtn');
-    themeToggleBtn.addEventListener('click', () => {
-      const isDark = document.documentElement.classList.toggle('dark');
-      document.getElementById('themeIconSun').classList.toggle('hidden', !isDark);
-      document.getElementById('themeIconMoon').classList.toggle('hidden', isDark);
-    });
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-    }
-
-    // Start intervals
+    // INICIALIZACIÓN
+    initTheme();
+    initSchedulerForm();
     fetchStatus();
     fetchMessages();
+    fetchChats();
+
     setInterval(fetchStatus, 4000);
-    setInterval(fetchMessages, 10000);
+    setInterval(fetchMessages, 8000);
+    setInterval(fetchChats, 12000);
   </script>
 </body>
 </html>
