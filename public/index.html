@@ -1,1001 +1,1060 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WhatsApp Scheduler - Panel de Control</title>
+  <title>WA / Scheduler</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            base: '#09090b',
+            surface: '#121215',
+            elevated: '#18181b',
+            borderSubtle: '#27272a',
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    :root {
-      color-scheme: dark;
-      --bg-main: #0b0f19;
-      --bg-card: #131c2e;
-      --bg-card-hover: #17233a;
-      --border-color: #23324d;
-      --text-main: #f1f5f9;
-      --text-muted: #94a3b8;
-      --primary: #25d366;
-      --primary-hover: #1eb956;
-      --primary-bg: rgba(37, 211, 102, 0.12);
-      --danger: #ef4444;
-      --danger-bg: rgba(239, 68, 68, 0.12);
-      --warning: #f59e0b;
-      --warning-bg: rgba(245, 158, 11, 0.12);
-      --info: #3b82f6;
-      --info-bg: rgba(59, 130, 246, 0.12);
-      --radius: 12px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-    }
-
-    body {
-      background-color: var(--bg-main);
-      color: var(--text-main);
-      min-height: 100vh;
-      padding: 24px 16px;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 28px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--border-color);
-      flex-wrap: wrap;
-      gap: 16px;
-    }
-
-    .logo-area {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .logo-icon {
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, #25d366, #128c7e);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
-    }
-
-    .logo-title h1 {
-      font-size: 1.4rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-    }
-
-    .logo-title p {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 9999px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      transition: all 0.3s ease;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-    }
-
-    .status-badge.connected {
-      background-color: var(--primary-bg);
-      color: var(--primary);
-      border: 1px solid rgba(37, 211, 102, 0.3);
-    }
-    .status-badge.connected .status-dot {
-      background-color: var(--primary);
-      box-shadow: 0 0 10px var(--primary);
-    }
-
-    .status-badge.disconnected {
-      background-color: var(--danger-bg);
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-    .status-badge.disconnected .status-dot {
-      background-color: var(--danger);
-      box-shadow: 0 0 10px var(--danger);
-    }
-
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 1fr 1.35fr;
-      gap: 24px;
-      margin-bottom: 32px;
-    }
-
-    @media (max-width: 900px) {
-      .dashboard-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .card {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius);
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-    }
-
-    .card-title {
-      font-size: 1.1rem;
-      font-weight: 600;
-      margin-bottom: 18px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .connection-content {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 280px;
-      text-align: center;
-    }
-
-    .qr-container {
-      background: white;
-      padding: 12px;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-      margin-bottom: 16px;
-      display: inline-block;
-    }
-
-    .qr-container img {
-      display: block;
-      width: 220px;
-      height: 220px;
-    }
-
-    .qr-info {
-      color: var(--text-muted);
-      font-size: 0.88rem;
-      max-width: 320px;
-      line-height: 1.5;
-    }
-
-    .connected-state-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-      padding: 20px;
-    }
-
-    .connected-icon-wrap {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: var(--primary-bg);
-      border: 2px solid var(--primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--primary);
-    }
-
-    .form-group {
-      margin-bottom: 18px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: var(--text-muted);
-    }
-
-    input, textarea {
-      width: 100%;
-      background-color: #0b1120;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 12px 14px;
-      color: var(--text-main);
-      font-size: 0.92rem;
-      outline: none;
-      transition: all 0.2s ease;
-    }
-
-    /* ESTILOS PARA EL SELECTOR DE FECHA/HORA NATIVO */
-    input[type="datetime-local"] {
-      color-scheme: dark;
-      cursor: pointer;
-    }
-
+    * { box-sizing: border-box; }
+    body { background-color: #09090b; color: #f4f4f5; font-family: 'Inter', system-ui, sans-serif; }
+    [color-scheme="dark"] { color-scheme: dark; }
     input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+      filter: invert(0.8);
       cursor: pointer;
-      filter: invert(1) brightness(1.2);
-      opacity: 0.9;
-      transform: scale(1.2);
-      margin-right: 4px;
-    }
-
-    .date-input-wrapper {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .btn-open-picker {
-      background-color: #1e293b;
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 11px 14px;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 0.86rem;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
-    }
-
-    .btn-open-picker:hover {
-      background-color: #27354f;
-      border-color: var(--primary);
-    }
-
-    .quick-time-buttons {
-      display: flex;
-      gap: 6px;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
-
-    .quick-btn {
-      background: transparent;
-      border: 1px solid rgba(35, 50, 77, 0.8);
-      color: var(--text-muted);
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.76rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .quick-btn:hover {
-      border-color: var(--primary);
-      color: var(--primary);
-      background: var(--primary-bg);
-    }
-
-    input:focus, textarea:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.2);
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 100px;
-    }
-
-    .field-hint {
-      font-size: 0.76rem;
-      color: var(--text-muted);
-      margin-top: 5px;
-    }
-
-    .tz-info {
-      color: #38bdf8;
-      font-weight: 500;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.92rem;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s ease;
-    }
-
-    .btn-primary {
-      background: var(--primary);
-      color: #051c0e;
-      width: 100%;
-    }
-
-    .btn-primary:hover:not(:disabled) {
-      background: var(--primary-hover);
-      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
-    }
-
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .table-card {
-      overflow: hidden;
-    }
-
-    .table-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
-    .btn-refresh {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      color: var(--text-muted);
-      padding: 6px 12px;
-      font-size: 0.82rem;
-      border-radius: 6px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .btn-refresh:hover {
-      background: var(--bg-card-hover);
-      color: var(--text-main);
-    }
-
-    .table-responsive {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-    }
-
-    th {
-      background-color: #0d1424;
-      padding: 12px 16px;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    td {
-      padding: 14px 16px;
-      font-size: 0.88rem;
-      border-bottom: 1px solid rgba(35, 50, 77, 0.6);
-      vertical-align: middle;
-    }
-
-    tbody tr:hover {
-      background-color: var(--bg-card-hover);
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 4px 10px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .badge-PENDIENTE {
-      background-color: var(--warning-bg);
-      color: var(--warning);
-      border: 1px solid rgba(245, 158, 11, 0.3);
-    }
-
-    .badge-PROCESANDO {
-      background-color: var(--info-bg);
-      color: var(--info);
-      border: 1px solid rgba(59, 130, 246, 0.3);
-    }
-
-    .badge-ENVIADO {
-      background-color: var(--primary-bg);
-      color: var(--primary);
-      border: 1px solid rgba(37, 211, 102, 0.3);
-    }
-
-    .badge-ERROR {
-      background-color: var(--danger-bg);
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-    }
-
-    .btn-danger {
-      background: transparent;
-      color: var(--danger);
-      border: 1px solid rgba(239, 68, 68, 0.4);
-      padding: 5px 10px;
-      border-radius: 6px;
-      font-size: 0.78rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .btn-danger:hover {
-      background: var(--danger);
-      color: white;
-    }
-
-    .msg-preview {
-      max-width: 280px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #cbd5e1;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 40px 20px;
-      color: var(--text-muted);
-      font-size: 0.9rem;
-    }
-
-    #toastContainer {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      z-index: 1000;
-    }
-
-    .toast {
-      padding: 12px 20px;
-      border-radius: 8px;
-      font-size: 0.88rem;
-      font-weight: 500;
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-      animation: slideIn 0.3s ease;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 260px;
-    }
-
-    .toast.success {
-      background-color: #059669;
-    }
-
-    .toast.error {
-      background-color: #dc2626;
-    }
-
-    @keyframes slideIn {
-      from {
-        transform: translateY(20px);
-        opacity: 0;
-      }
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    .spinner {
-      border: 3px solid rgba(255, 255, 255, 0.2);
-      border-top: 3px solid var(--primary);
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      animation: spin 0.8s linear infinite;
-      margin-bottom: 12px;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
     }
   </style>
 </head>
-<body>
-  <div class="container">
-    <header>
-      <div class="logo-area">
-        <div class="logo-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-          </svg>
-        </div>
-        <div class="logo-title">
-          <h1>WhatsApp Scheduler</h1>
-          <p>Persistencia en MongoDB & Despliegue en Render</p>
-        </div>
-      </div>
-      <div>
-        <span id="globalStatusBadge" class="status-badge disconnected">
-          <span class="status-dot"></span>
-          <span id="globalStatusText">Desconectado</span>
-        </span>
-      </div>
-    </header>
+<body class="min-h-screen flex flex-col bg-[#09090b] text-zinc-100 antialiased selection:bg-zinc-800 selection:text-white">
 
-    <div class="dashboard-grid">
-      <!-- TARJETA 1: CONEXIÓN -->
-      <div class="card">
-        <div class="card-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          Conexión WhatsApp
-        </div>
-        <div id="connectionContainer" class="connection-content">
-          <div class="spinner"></div>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">Comprobando estado de conexión...</p>
-        </div>
-      </div>
-
-      <!-- TARJETA 2: FORMULARIO -->
-      <div class="card">
-        <div class="card-title">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <polyline points="12 6 12 12 16 14"></polyline>
-          </svg>
-          Programar Mensaje
-        </div>
-
-        <form id="scheduleForm">
-          <div class="form-group">
-            <label for="phoneInput">Número de Teléfono (con código de país):</label>
-            <input
-              type="text"
-              id="phoneInput"
-              name="phone"
-              placeholder="Ej: 51954584523 (sin +, sin espacios)"
-              required
-            />
-            <div class="field-hint">Coloca el código del país seguido del número (ej: 51 para Perú, 549 para Argentina, etc.).</div>
-          </div>
-
-          <div class="form-group">
-            <label for="dateInput">Fecha y Hora de Envío (Hora Local):</label>
-            <div class="date-input-wrapper">
-              <input
-                type="datetime-local"
-                id="dateInput"
-                name="scheduledAt"
-                onclick="openDatePicker()"
-                required
-              />
-              <button type="button" class="btn-open-picker" onclick="openDatePicker()">
-                📅 Calendario
-              </button>
-            </div>
-            <div class="quick-time-buttons">
-              <button type="button" class="quick-btn" onclick="addMinutesToInput(2)">+2 min (Prueba rápida)</button>
-              <button type="button" class="quick-btn" onclick="addMinutesToInput(10)">+10 min</button>
-              <button type="button" class="quick-btn" onclick="addMinutesToInput(30)">+30 min</button>
-              <button type="button" class="quick-btn" onclick="addMinutesToInput(60)">+1 hora</button>
-              <button type="button" class="quick-btn" onclick="addDaysToInput(1)">+1 día</button>
-            </div>
-            <div class="field-hint tz-info" id="tzHint">Detectando zona horaria...</div>
-          </div>
-
-          <div class="form-group">
-            <label for="messageInput">Mensaje a Enviar:</label>
-            <textarea
-              id="messageInput"
-              name="message"
-              placeholder="Escribe el mensaje que deseas enviar..."
-              required
-            ></textarea>
-            <div class="field-hint" id="charCount">0 caracteres</div>
-          </div>
-
-          <button type="submit" id="submitBtn" class="btn btn-primary">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-            <span>Programar Mensaje</span>
-          </button>
-        </form>
+  <!-- 1. SLIM NAVBAR (H-12) -->
+  <header class="h-12 border-b border-zinc-800 bg-[#09090b] text-zinc-100 flex items-center justify-between px-4 sticky top-0 z-40 select-none">
+    <!-- Izquierda: Brand & Status Dot -->
+    <div class="flex items-center gap-3">
+      <span class="font-mono text-sm tracking-tight font-semibold text-zinc-100">
+        WA / Scheduler
+      </span>
+      <div class="h-4 w-[1px] bg-zinc-800"></div>
+      <div class="flex items-center gap-2 text-xs">
+        <span id="navStatusDot" class="w-1.5 h-1.5 rounded-full bg-zinc-600"></span>
+        <span id="navStatusText" class="font-mono text-zinc-400 font-medium">Desconectado</span>
       </div>
     </div>
 
-    <!-- TARJETA 3: TABLA DE MENSAJES -->
-    <div class="card table-card">
-      <div class="table-header-row">
-        <div class="card-title" style="margin-bottom: 0;">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="8" y1="6" x2="21" y2="6"></line>
-            <line x1="8" y1="12" x2="21" y2="12"></line>
-            <line x1="8" y1="18" x2="21" y2="18"></line>
-            <line x1="3" y1="6" x2="3.01" y2="6"></line>
-            <line x1="3" y1="12" x2="3.01" y2="12"></line>
-            <line x1="3" y1="18" x2="3.01" y2="18"></line>
-          </svg>
-          Historial y Cola de Mensajes
-        </div>
-        <button id="refreshBtn" class="btn-refresh" title="Actualizar lista">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"></polyline>
-            <polyline points="1 20 1 14 7 14"></polyline>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
-          </svg>
-          Actualizar
-        </button>
+    <!-- Derecha: Stats, Theme Toggle, Session Menu -->
+    <div class="flex items-center gap-3 sm:gap-4">
+      <div class="hidden sm:flex items-center gap-1.5 text-xs text-zinc-400 font-mono">
+        <span id="navPendingCount" class="text-zinc-200">0</span>
+        <span>pendientes</span>
+        <span class="text-zinc-700">·</span>
+        <span id="navSentCount" class="text-zinc-200">0</span>
+        <span>enviados hoy</span>
       </div>
 
-      <div class="table-responsive">
-        <table>
-          <thead>
+      <div class="hidden sm:block h-4 w-[1px] bg-zinc-800"></div>
+
+      <!-- Theme Toggle -->
+      <button
+        id="themeToggleBtn"
+        type="button"
+        class="w-7 h-7 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 flex items-center justify-center transition-colors"
+        title="Cambiar tema"
+      >
+        <svg id="themeIconSun" class="w-3.5 h-3.5 block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+        <svg id="themeIconMoon" class="w-3.5 h-3.5 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      </button>
+
+      <!-- User Menu Trigger -->
+      <div class="relative">
+        <button
+          id="userMenuBtn"
+          type="button"
+          class="flex items-center gap-2 px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-200 text-xs font-medium transition-colors"
+        >
+          <div class="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center text-[10px] font-mono text-zinc-300">
+            W
+          </div>
+          <span id="navUserName" class="hidden md:inline max-w-[120px] truncate text-zinc-300">Sesión</span>
+          <svg class="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div id="userMenuDropdown" class="hidden absolute right-0 mt-1.5 w-56 rounded border border-zinc-800 bg-[#121215] py-1 shadow-2xl z-50 text-xs">
+          <div class="px-3 py-2 border-b border-zinc-800/80">
+            <div class="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">Identificador</div>
+            <div id="dropdownPhone" class="text-zinc-200 font-mono truncate mt-0.5">Sin vincular</div>
+          </div>
+          <div class="px-3 py-2 flex items-center justify-between text-zinc-400 border-b border-zinc-800/80 font-mono text-[11px]">
+            <span>Latencia Ping</span>
+            <span id="dropdownPing" class="text-zinc-300">-- ms</span>
+          </div>
+          <button
+            id="menuLogoutBtn"
+            type="button"
+            class="w-full px-3 py-2 text-left flex items-center gap-2 text-red-400 hover:bg-red-950/30 transition-colors"
+          >
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Desvincular sesión</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 flex flex-col gap-6">
+
+    <!-- UPPER GRID (4 cols Status / 8 cols Form) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+      <!-- PANEL IZQUIERDO: STATUS WHATSAPP -->
+      <div class="lg:col-span-4 flex flex-col rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 justify-between select-none">
+        <div>
+          <div class="flex items-center justify-between pb-3 mb-3 border-b border-zinc-800/80">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></svg>
+              <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono">
+                Vinculación WhatsApp
+              </span>
+            </div>
+            <span id="cardStatusBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border bg-zinc-900 border-zinc-800 text-zinc-400">
+              <span id="cardStatusDot" class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span>
+              <span id="cardStatusText">Inactivo</span>
+            </span>
+          </div>
+
+          <!-- Dynamic Container for Connected / QR / Loading -->
+          <div id="statusDynamicContainer" class="py-2">
+            <!-- Rendered by JS -->
+            <div class="py-8 flex flex-col items-center justify-center text-center gap-2 text-zinc-500">
+              <svg class="w-5 h-5 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+              <span class="text-xs font-mono">Comprobando conexión...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL DERECHO: FORMULARIO DE PROGRAMACIÓN -->
+      <div class="lg:col-span-8 flex flex-col rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 justify-between">
+        <div>
+          <div class="pb-3 mb-4 border-b border-zinc-800/80 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <span class="text-xs font-semibold uppercase tracking-wider text-zinc-300 font-mono">
+                Programar Mensaje
+              </span>
+            </div>
+          </div>
+
+          <form id="schedulerForm" class="flex flex-col gap-4">
+            <!-- Destinatario -->
+            <div>
+              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">
+                Destinatario
+              </label>
+              <div class="flex rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600 transition-colors">
+                <select id="countrySelect" class="bg-transparent border-r border-zinc-800 text-xs font-mono text-zinc-300 px-2.5 py-2 outline-none cursor-pointer hover:bg-zinc-900/50">
+                  <option value="51" class="bg-zinc-900 text-zinc-200">PE +51</option>
+                  <option value="1" class="bg-zinc-900 text-zinc-200">US +1</option>
+                  <option value="52" class="bg-zinc-900 text-zinc-200">MX +52</option>
+                  <option value="57" class="bg-zinc-900 text-zinc-200">CO +57</option>
+                  <option value="56" class="bg-zinc-900 text-zinc-200">CL +56</option>
+                  <option value="549" class="bg-zinc-900 text-zinc-200">AR +549</option>
+                  <option value="34" class="bg-zinc-900 text-zinc-200">ES +34</option>
+                </select>
+                <input
+                  type="tel"
+                  id="phoneInput"
+                  placeholder="954 584 523"
+                  required
+                  class="flex-1 bg-transparent px-3 py-2 text-xs font-mono text-zinc-100 placeholder-zinc-600 outline-none"
+                />
+              </div>
+            </div>
+
+            <!-- Fecha y Hora con Chips -->
+            <div>
+              <label class="block text-[11px] font-mono text-zinc-400 uppercase tracking-wider mb-1.5">
+                Fecha y Hora de Disparo (Hora Local)
+              </label>
+              <div class="relative flex items-center rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600 mb-2">
+                <input
+                  type="datetime-local"
+                  id="dateTimeInput"
+                  required
+                  class="w-full bg-transparent px-3 py-2 text-xs font-mono text-zinc-200 outline-none cursor-pointer [color-scheme:dark]"
+                />
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="addMinutes(2)" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">+2m</button>
+                <button type="button" onclick="addMinutes(10)" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">+10m</button>
+                <button type="button" onclick="addMinutes(30)" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">+30m</button>
+                <button type="button" onclick="addMinutes(60)" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">+1h</button>
+                <button type="button" onclick="setTomorrowNine()" class="px-2 py-1 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-[11px] font-mono text-zinc-400 hover:text-zinc-200 transition-colors">Mañana 09:00</button>
+              </div>
+            </div>
+
+            <!-- Contenido del Mensaje -->
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label class="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">
+                  Contenido del Mensaje
+                </label>
+                <div class="flex items-center gap-1">
+                  <button type="button" onclick="insertVariable('nombre')" class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors">{nombre}</button>
+                  <button type="button" onclick="insertVariable('hora')" class="text-[10px] font-mono px-1.5 py-0.5 rounded border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors">{hora}</button>
+                </div>
+              </div>
+
+              <div class="rounded border border-zinc-800 bg-[#0b0f17] focus-within:border-zinc-600">
+                <textarea
+                  id="messageText"
+                  rows="4"
+                  placeholder="Escribe el mensaje..."
+                  maxLength="1000"
+                  required
+                  class="w-full bg-transparent p-3 text-xs text-zinc-100 placeholder-zinc-600 outline-none resize-y min-h-[90px] leading-relaxed"
+                ></textarea>
+
+                <!-- Attachment Pill Preview -->
+                <div id="attachmentPill" class="hidden px-3 pb-2 flex items-center">
+                  <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-zinc-800/80 border border-zinc-700 text-xs text-zinc-300 font-mono">
+                    <svg class="w-3 h-3 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/></svg>
+                    <span id="attachmentFileName" class="max-w-[200px] truncate">archivo.pdf</span>
+                    <button type="button" onclick="removeAttachment()" class="text-zinc-500 hover:text-zinc-200 ml-1">
+                      <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Footer toolbar con contador -->
+                <div class="px-3 py-2 border-t border-zinc-800/80 flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <input type="file" id="fileInputHidden" class="hidden" onchange="handleFileSelected(event)" />
+                    <button
+                      type="button"
+                      onclick="document.getElementById('fileInputHidden').click()"
+                      class="inline-flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+                      title="Adjuntar archivo o imagen"
+                    >
+                      <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                      <span class="text-[11px] font-mono">Adjuntar</span>
+                    </button>
+                  </div>
+                  <div id="charCounter" class="text-[11px] font-mono text-zinc-500">0 / 1000</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Botón Programar -->
+            <button
+              type="submit"
+              id="submitFormBtn"
+              class="w-full flex items-center justify-center gap-2 py-2 px-4 rounded bg-white hover:bg-zinc-200 text-black font-semibold text-xs transition-colors shadow-sm disabled:opacity-50"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <span>Programar Envío</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- TABLA DE HISTORIAL Y COLA -->
+    <section class="rounded border border-zinc-800 bg-[#121215] text-zinc-100 flex flex-col">
+      <!-- Toolbar Superior -->
+      <div class="p-3 border-b border-zinc-800/80 flex flex-wrap items-center justify-between gap-3">
+        <div class="relative w-full sm:w-64">
+          <svg class="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input
+            type="text"
+            id="tableSearchInput"
+            placeholder="Filtrar por número o texto..."
+            class="w-full bg-[#0b0f17] border border-zinc-800 rounded pl-8 pr-3 py-1.5 text-xs font-mono text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-600 transition-colors"
+          />
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+          <!-- Segmented Tabs -->
+          <div class="flex items-center rounded border border-zinc-800 bg-[#0b0f17] p-0.5 text-xs font-mono">
+            <button type="button" class="tab-btn px-2.5 py-1 rounded font-medium bg-zinc-800 text-zinc-100" data-tab="all">Todos</button>
+            <button type="button" class="tab-btn px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300" data-tab="pending">En Cola</button>
+            <button type="button" class="tab-btn px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300" data-tab="sent">Enviados</button>
+            <button type="button" class="tab-btn px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300" data-tab="error">Fallidos</button>
+          </div>
+
+          <!-- Refresh Button -->
+          <button
+            type="button"
+            id="tableRefreshBtn"
+            class="p-1.5 rounded border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
+            title="Actualizar tabla"
+          >
+            <svg id="refreshSpinIcon" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla Responsive -->
+      <div class="overflow-x-auto min-h-[260px]">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-[#0b0f17] border-b border-zinc-800/80 text-[11px] font-mono uppercase text-zinc-500 tracking-wider select-none">
             <tr>
-              <th>Teléfono</th>
-              <th>Mensaje</th>
-              <th>Fecha Programada (Tu Hora)</th>
-              <th>Estado</th>
-              <th style="text-align: right;">Acciones</th>
+              <th class="py-2.5 px-3">Destinatario</th>
+              <th class="py-2.5 px-3">Mensaje</th>
+              <th class="py-2.5 px-3">Programación</th>
+              <th class="py-2.5 px-3">Estado</th>
+              <th class="py-2.5 px-3 text-right">Acciones</th>
             </tr>
           </thead>
-          <tbody id="messagesTableBody">
+          <tbody id="messagesTableBody" class="divide-y divide-zinc-800/60 font-mono">
             <tr>
-              <td colspan="5" class="empty-state">Cargando mensajes...</td>
+              <td colspan="5" class="py-12 text-center text-zinc-600 font-mono text-xs">Cargando mensajes...</td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Paginación Inferior -->
+      <div class="p-3 border-t border-zinc-800/80 flex items-center justify-between text-xs font-mono text-zinc-400 select-none">
+        <div class="flex items-center gap-2">
+          <span>Mostrar</span>
+          <select id="pageSizeSelect" class="bg-[#0b0f17] border border-zinc-800 rounded px-1.5 py-0.5 text-zinc-300 outline-none">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+          <span>por página</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span id="paginationCountText">0 de 0</span>
+          <div class="flex items-center gap-1">
+            <button type="button" id="prevPageBtn" class="p-1 rounded border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 transition-colors">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <button type="button" id="nextPageBtn" class="p-1 rounded border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 transition-colors">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: EDITAR MENSAJE -->
+  <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
+    <div class="w-full max-w-md rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 shadow-2xl">
+      <div class="flex items-center justify-between pb-2 mb-3 border-b border-zinc-800">
+        <span class="text-xs font-mono font-semibold text-zinc-200 uppercase tracking-wider">Editar Mensaje</span>
+        <button type="button" onclick="closeEditModal()" class="text-zinc-500 hover:text-zinc-200">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <input type="hidden" id="editModalId" />
+      <textarea id="editModalText" rows="5" class="w-full bg-[#0b0f17] border border-zinc-800 rounded p-2.5 text-xs text-zinc-100 outline-none focus:border-zinc-600 resize-y"></textarea>
+      <div class="flex justify-end gap-2 mt-3">
+        <button type="button" onclick="closeEditModal()" class="px-3 py-1.5 text-xs rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-800">Cancelar</button>
+        <button type="button" onclick="saveEditMessage()" class="px-3 py-1.5 text-xs rounded bg-white text-black font-semibold hover:bg-zinc-200">Guardar Cambios</button>
+      </div>
     </div>
   </div>
 
-  <div id="toastContainer"></div>
+  <!-- MODAL: REPROGRAMAR -->
+  <div id="rescheduleModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
+    <div class="w-full max-w-sm rounded border border-zinc-800 bg-[#121215] p-4 text-zinc-100 shadow-2xl">
+      <div class="flex items-center justify-between pb-2 mb-3 border-b border-zinc-800">
+        <span class="text-xs font-mono font-semibold text-zinc-200 uppercase tracking-wider">Reprogramar Envío</span>
+        <button type="button" onclick="closeRescheduleModal()" class="text-zinc-500 hover:text-zinc-200">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+      <input type="hidden" id="rescheduleModalId" />
+      <input type="datetime-local" id="rescheduleModalDateTime" class="w-full bg-[#0b0f17] border border-zinc-800 rounded p-2.5 text-xs font-mono text-zinc-200 outline-none [color-scheme:dark]" />
+      <div class="flex justify-end gap-2 mt-4">
+        <button type="button" onclick="closeRescheduleModal()" class="px-3 py-1.5 text-xs rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-800">Cancelar</button>
+        <button type="button" onclick="saveReschedule()" class="px-3 py-1.5 text-xs rounded bg-white text-black font-semibold hover:bg-zinc-200">Actualizar Fecha</button>
+      </div>
+    </div>
+  </div>
 
+  <!-- MODAL: DESVINCULAR SESIÓN -->
+  <div id="logoutModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4">
+    <div class="w-full max-w-sm rounded border border-zinc-800 bg-[#121215] text-zinc-200 p-5 shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <div class="flex items-center gap-2 text-sm font-semibold text-zinc-100">
+          <svg class="w-4 h-4 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>Desvincular sesión</span>
+        </div>
+        <button type="button" onclick="closeLogoutModal()" class="text-zinc-500 hover:text-zinc-300">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        </button>
+      </div>
+
+      <div id="logoutModalWarning" class="py-4 text-xs text-zinc-400 leading-relaxed">
+        Esta acción cerrará la sesión activa del socket. Deberás escanear un nuevo código QR para volver a programar envíos.
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-3 border-t border-zinc-800">
+        <button type="button" onclick="closeLogoutModal()" class="px-3 py-1.5 text-xs rounded border border-zinc-800 text-zinc-300 hover:bg-zinc-800">Cancelar</button>
+        <button type="button" onclick="confirmLogout()" id="confirmLogoutBtn" class="px-3 py-1.5 text-xs rounded bg-red-600 hover:bg-red-500 text-white font-medium">Confirmar desvinculación</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- CLIENT-SIDE CONTROLLER -->
   <script>
-    const globalStatusBadge = document.getElementById('globalStatusBadge');
-    const globalStatusText = document.getElementById('globalStatusText');
-    const connectionContainer = document.getElementById('connectionContainer');
-    const scheduleForm = document.getElementById('scheduleForm');
-    const phoneInput = document.getElementById('phoneInput');
-    const dateInput = document.getElementById('dateInput');
-    const tzHint = document.getElementById('tzHint');
-    const messageInput = document.getElementById('messageInput');
-    const charCount = document.getElementById('charCount');
-    const submitBtn = document.getElementById('submitBtn');
+    // State
+    let allMessages = [];
+    let currentTab = 'all';
+    let currentSearch = '';
+    let currentPage = 1;
+    let currentPageSize = 10;
+    let expandedId = null;
+    let activeDropdownRowId = null;
+    let currentStatus = { connected: false, qr: null, user: null };
+    let attachedFile = null;
+
+    // Elements
+    const navStatusDot = document.getElementById('navStatusDot');
+    const navStatusText = document.getElementById('navStatusText');
+    const navPendingCount = document.getElementById('navPendingCount');
+    const navSentCount = document.getElementById('navSentCount');
+    const navUserName = document.getElementById('navUserName');
+    const dropdownPhone = document.getElementById('dropdownPhone');
+    const dropdownPing = document.getElementById('dropdownPing');
+    const statusDynamicContainer = document.getElementById('statusDynamicContainer');
+    const cardStatusBadge = document.getElementById('cardStatusBadge');
+    const cardStatusDot = document.getElementById('cardStatusDot');
+    const cardStatusText = document.getElementById('cardStatusText');
+    const dateTimeInput = document.getElementById('dateTimeInput');
+    const messageText = document.getElementById('messageText');
+    const charCounter = document.getElementById('charCounter');
+    const attachmentPill = document.getElementById('attachmentPill');
+    const attachmentFileName = document.getElementById('attachmentFileName');
     const messagesTableBody = document.getElementById('messagesTableBody');
-    const refreshBtn = document.getElementById('refreshBtn');
+    const tableSearchInput = document.getElementById('tableSearchInput');
+    const pageSizeSelect = document.getElementById('pageSizeSelect');
+    const paginationCountText = document.getElementById('paginationCountText');
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
     const toastContainer = document.getElementById('toastContainer');
+    const userMenuBtn = document.getElementById('userMenuBtn');
+    const userMenuDropdown = document.getElementById('userMenuDropdown');
 
-    // Detectar y mostrar la zona horaria del usuario
-    function displayUserTimezone() {
-      try {
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Local';
-        const offsetMin = -new Date().getTimezoneOffset();
-        const sign = offsetMin >= 0 ? '+' : '-';
-        const hours = String(Math.floor(Math.abs(offsetMin) / 60)).padStart(2, '0');
-        const mins = String(Math.abs(offsetMin) % 60).padStart(2, '0');
-        tzHint.textContent = `🕒 Tu zona horaria: ${tz} (UTC${sign}${hours}:${mins})`;
-      } catch (e) {
-        tzHint.textContent = '🕒 Usando hora local de tu dispositivo';
-      }
-    }
-    displayUserTimezone();
-
-    // Helper para formatear Date a string YYYY-MM-DDTHH:mm para input datetime-local
-    function toLocalISOString(date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      const hours = String(date.getHours()).padStart(2, '0');
-      const minutes = String(date.getMinutes()).padStart(2, '0');
-      return `${year}-${month}-${day}T${hours}:${minutes}`;
-    }
-
-    // Inicializar input de fecha con hora actual + 5 minutos
+    // Init Date input (+5 mins)
     function initDateTime() {
-      const target = new Date();
-      target.setMinutes(target.getMinutes() + 5);
-      dateInput.value = toLocalISOString(target);
-      dateInput.min = toLocalISOString(new Date());
+      const d = new Date();
+      d.setMinutes(d.getMinutes() + 5);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      dateTimeInput.value = `${year}-${month}-${day}T${hours}:${mins}`;
     }
     initDateTime();
 
-    // Abrir selector de fecha al hacer clic
-    function openDatePicker() {
-      if (dateInput.showPicker) {
-        try {
-          dateInput.showPicker();
-        } catch (e) {
-          dateInput.focus();
-        }
-      } else {
-        dateInput.focus();
-      }
-    }
-    window.openDatePicker = openDatePicker;
-
-    // Botones de ajuste rápido de tiempo
-    window.addMinutesToInput = function(minutes) {
-      const target = new Date();
-      target.setMinutes(target.getMinutes() + minutes);
-      dateInput.value = toLocalISOString(target);
-      showToast(`Hora ajustada a las ${target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 'success');
-    };
-
-    window.addDaysToInput = function(days) {
-      const target = new Date();
-      target.setDate(target.getDate() + days);
-      dateInput.value = toLocalISOString(target);
-      showToast(`Fecha ajustada a ${target.toLocaleDateString()} a las ${target.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 'success');
-    };
-
-    messageInput.addEventListener('input', () => {
-      charCount.textContent = `${messageInput.value.length} caracteres`;
+    // User menu dropdown toggle
+    userMenuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      userMenuDropdown.classList.toggle('hidden');
     });
+    document.addEventListener('click', () => userMenuDropdown.classList.add('hidden'));
 
+    // Toast helper
     function showToast(text, type = 'success') {
       const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.innerHTML = `<span>${text}</span>`;
+      toast.className = `pointer-events-auto px-3 py-2 rounded text-xs font-mono border shadow-2xl animate-in fade-in slide-in-from-bottom-2 ${
+        type === 'success' ? 'bg-[#121215] border-emerald-800 text-emerald-300' : 'bg-[#121215] border-red-800 text-red-300'
+      }`;
+      toast.textContent = text;
       toastContainer.appendChild(toast);
       setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translateY(10px)';
-        toast.style.transition = 'all 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-      }, 4000);
+        toast.style.transition = 'opacity 200ms ease';
+        setTimeout(() => toast.remove(), 250);
+      }, 3500);
     }
 
-    // 1. Polling de Conexión de WhatsApp (/api/status cada 4s)
-    let currentConnectedState = null;
-    let currentQr = null;
+    // Quick time chips
+    window.addMinutes = function(mins) {
+      const d = new Date();
+      d.setMinutes(d.getMinutes() + mins);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const m = String(d.getMinutes()).padStart(2, '0');
+      dateTimeInput.value = `${year}-${month}-${day}T${hours}:${m}`;
+    };
 
-    async function checkStatus() {
-      try {
-        const res = await fetch('/api/status');
-        const data = await res.json();
+    window.setTomorrowNine = function() {
+      const d = new Date();
+      d.setDate(d.getDate() + 1);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      dateTimeInput.value = `${year}-${month}-${day}T09:00`;
+    };
 
-        if (data.connected) {
-          globalStatusBadge.className = 'status-badge connected';
-          globalStatusText.textContent = 'Conectado';
-        } else {
-          globalStatusBadge.className = 'status-badge disconnected';
-          globalStatusText.textContent = 'Desconectado';
-        }
+    window.insertVariable = function(varName) {
+      messageText.value += ` {${varName}} `;
+      messageText.focus();
+      updateCharCounter();
+    };
 
-        if (currentConnectedState !== data.connected || currentQr !== data.qr) {
-          currentConnectedState = data.connected;
-          currentQr = data.qr;
-          renderConnectionCard(data.connected, data.qr);
-        }
-      } catch (err) {
-        globalStatusBadge.className = 'status-badge disconnected';
-        globalStatusText.textContent = 'Error Servidor';
-      }
+    function updateCharCounter() {
+      charCounter.textContent = `${messageText.value.length} / 1000`;
     }
+    messageText.addEventListener('input', updateCharCounter);
 
-    function renderConnectionCard(connected, qr) {
-      if (connected) {
-        connectionContainer.innerHTML = `
-          <div class="connected-state-box">
-            <div class="connected-icon-wrap">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-            </div>
-            <h3 style="font-size: 1.15rem; color: var(--text-main);">WhatsApp Conectado</h3>
-            <p class="qr-info">
-              Tu número está vinculado y listo para procesar la cola de mensajes programados.
-            </p>
-          </div>
-        `;
-      } else if (qr) {
-        connectionContainer.innerHTML = `
-          <div class="qr-container">
-            <img src="${qr}" alt="Código QR de WhatsApp" />
-          </div>
-          <p class="qr-info">
-            <strong>Escanea este código:</strong> Abre WhatsApp en tu teléfono, ve a <em>Dispositivos vinculados</em> y escanea la imagen.
-          </p>
-        `;
-      } else {
-        connectionContainer.innerHTML = `
-          <div class="spinner"></div>
-          <p style="color: var(--text-muted); font-size: 0.9rem;">Esperando o generando código QR de WhatsApp...</p>
-        `;
-      }
-    }
-
-    checkStatus();
-    setInterval(checkStatus, 4000);
-
-    // 2. Cargar Lista de Mensajes (/api/messages)
-    async function loadMessages() {
-      try {
-        const res = await fetch('/api/messages');
-        const json = await res.json();
-        const messages = json.data || [];
-
-        if (messages.length === 0) {
-          messagesTableBody.innerHTML = `
-            <tr>
-              <td colspan="5" class="empty-state">No hay mensajes programados actualmente.</td>
-            </tr>
-          `;
-          return;
-        }
-
-        messagesTableBody.innerHTML = messages.map(msg => {
-          // Formatear en la hora exacta local del usuario
-          const scheduleDate = new Date(msg.scheduledAt).toLocaleString(undefined, {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true
-          });
-
-          return `
-            <tr>
-              <td><strong>+${msg.phone}</strong></td>
-              <td><div class="msg-preview" title="${escapeHtml(msg.message)}">${escapeHtml(msg.message)}</div></td>
-              <td style="color: #38bdf8; font-size: 0.85rem; font-weight: 500;">${scheduleDate}</td>
-              <td>
-                <span class="badge badge-${msg.status}">
-                  ${msg.status}
-                </span>
-                ${msg.error ? `<div style="font-size: 0.72rem; color: var(--danger); margin-top: 4px;" title="${escapeHtml(msg.error)}">${escapeHtml(msg.error.substring(0, 40))}...</div>` : ''}
-              </td>
-              <td style="text-align: right;">
-                <button
-                  class="btn-danger"
-                  onclick="deleteMessage('${msg._id}')"
-                  title="Cancelar / Eliminar"
-                >
-                  Cancelar
-                </button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-      } catch (err) {
-        messagesTableBody.innerHTML = `
-          <tr>
-            <td colspan="5" class="empty-state" style="color: var(--danger);">Error al cargar los mensajes.</td>
-          </tr>
-        `;
-      }
-    }
-
-    window.deleteMessage = async function(id) {
-      if (!confirm('¿Estás seguro de que deseas cancelar o eliminar este mensaje?')) {
-        return;
-      }
-
-      try {
-        const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
-        const data = await res.json();
-        if (res.ok) {
-          showToast('Mensaje eliminado correctamente.', 'success');
-          loadMessages();
-        } else {
-          showToast(data.error || 'Error al eliminar el mensaje.', 'error');
-        }
-      } catch (err) {
-        showToast('Error de conexión al eliminar el mensaje.', 'error');
+    // Attachment
+    window.handleFileSelected = function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        attachedFile = file;
+        attachmentFileName.textContent = file.name;
+        attachmentPill.classList.remove('hidden');
       }
     };
 
-    // 3. Enviar Formulario de Programación con conversión de Zona Horaria a UTC
-    scheduleForm.addEventListener('submit', async (e) => {
+    window.removeAttachment = function() {
+      attachedFile = null;
+      document.getElementById('fileInputHidden').value = '';
+      attachmentPill.classList.add('hidden');
+    };
+
+    // 1. Polling Status & Debug
+    async function fetchStatus() {
+      try {
+        const start = performance.now();
+        const res = await fetch('/api/status');
+        const ping = Math.round(performance.now() - start);
+        const data = await res.json();
+
+        let user = null;
+        try {
+          const debugRes = await fetch('/api/debug');
+          const debugData = await debugRes.json();
+          user = debugData.user;
+        } catch(e) {}
+
+        currentStatus = {
+          connected: !!data.connected,
+          qr: data.qr,
+          user: user
+        };
+
+        dropdownPing.textContent = `${ping} ms`;
+        renderStatusUI();
+      } catch (e) {
+        currentStatus.connected = false;
+        renderStatusUI();
+      }
+    }
+
+    function renderStatusUI() {
+      if (currentStatus.connected) {
+        navStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-500';
+        navStatusText.textContent = 'En línea';
+        navStatusText.className = 'font-mono text-emerald-400 font-medium';
+
+        cardStatusBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border bg-emerald-950/40 border-emerald-900/50 text-emerald-400';
+        cardStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-emerald-400';
+        cardStatusText.textContent = 'Activo';
+
+        const rawId = currentStatus.user?.id || '';
+        const phone = rawId.split(':')[0].replace(/\D/g, '');
+        const name = currentStatus.user?.name || 'Cuenta Vinculada';
+        const formattedPhone = phone ? `+${phone}` : 'Conectado';
+
+        navUserName.textContent = name;
+        dropdownPhone.textContent = formattedPhone;
+
+        statusDynamicContainer.innerHTML = `
+          <div class="flex flex-col gap-4 py-2">
+            <div class="flex items-center gap-3">
+              <div class="w-11 h-11 rounded-full bg-zinc-900 border border-zinc-700 flex items-center justify-center font-mono font-bold text-sm text-zinc-200 shrink-0">
+                ${name.charAt(0).toUpperCase()}
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="text-sm font-medium text-zinc-100 truncate">${escapeHtml(name)}</div>
+                <div class="text-xs font-mono text-zinc-400">${formattedPhone}</div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-800/60 text-[11px] font-mono text-zinc-400">
+              <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Multi-dispositivo</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                <span>Socket listo</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onclick="openLogoutModal()"
+              class="mt-2 w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-800 text-zinc-300 hover:text-zinc-100 text-xs font-medium transition-colors"
+            >
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/></svg>
+              <span>Desconectar socket</span>
+            </button>
+          </div>
+        `;
+      } else if (currentStatus.qr) {
+        navStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-500';
+        navStatusText.textContent = 'Esperando QR';
+        navStatusText.className = 'font-mono text-amber-400 font-medium';
+
+        cardStatusBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border bg-amber-950/40 border-amber-900/50 text-amber-400';
+        cardStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-amber-400';
+        cardStatusText.textContent = 'Escaneo Requerido';
+
+        statusDynamicContainer.innerHTML = `
+          <div class="flex flex-col items-center justify-center py-2 gap-3">
+            <div class="p-2 rounded bg-white border border-zinc-300 shadow-sm inline-block">
+              <img src="${currentStatus.qr}" alt="Código QR de WhatsApp" class="w-44 h-44 block object-contain" />
+            </div>
+            <div class="flex items-center justify-between w-full px-1 text-xs text-zinc-400 font-mono">
+              <span>Escanea con tu WhatsApp</span>
+              <button type="button" onclick="fetchStatus()" class="inline-flex items-center gap-1 text-zinc-300 hover:text-white transition-colors">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                <span>Recargar</span>
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        navStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-zinc-600';
+        navStatusText.textContent = 'Desconectado';
+        navStatusText.className = 'font-mono text-zinc-400 font-medium';
+
+        cardStatusBadge.className = 'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-mono font-medium border bg-zinc-900 border-zinc-800 text-zinc-400';
+        cardStatusDot.className = 'w-1.5 h-1.5 rounded-full bg-zinc-500';
+        cardStatusText.textContent = 'Inactivo';
+
+        statusDynamicContainer.innerHTML = `
+          <div class="py-8 flex flex-col items-center justify-center text-center gap-2 text-zinc-500">
+            <svg class="w-5 h-5 animate-spin text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+            <span class="text-xs font-mono">Iniciando socket...</span>
+          </div>
+        `;
+      }
+    }
+
+    // 2. Polling Messages
+    async function fetchMessages() {
+      const spin = document.getElementById('refreshSpinIcon');
+      if (spin) spin.classList.add('animate-spin');
+      try {
+        const res = await fetch('/api/messages');
+        const json = await res.json();
+        allMessages = json.data || [];
+        renderTable();
+        updateStats();
+      } catch (e) {
+        showToast('Error al cargar mensajes', 'error');
+      } finally {
+        if (spin) spin.classList.remove('animate-spin');
+      }
+    }
+
+    function updateStats() {
+      const pending = allMessages.filter(m => m.status === 'PENDIENTE' || m.status === 'PROCESANDO').length;
+      const today = new Date();
+      const sentToday = allMessages.filter(m => {
+        if (m.status !== 'ENVIADO' || !m.sentAt) return false;
+        const s = new Date(m.sentAt);
+        return s.getDate() === today.getDate() && s.getMonth() === today.getMonth() && s.getFullYear() === today.getFullYear();
+      }).length;
+
+      navPendingCount.textContent = pending;
+      navSentCount.textContent = sentToday;
+    }
+
+    // Render Table Rows
+    function renderTable() {
+      let filtered = allMessages.filter(msg => {
+        if (currentTab === 'pending' && msg.status !== 'PENDIENTE' && msg.status !== 'PROCESANDO') return false;
+        if (currentTab === 'sent' && msg.status !== 'ENVIADO') return false;
+        if (currentTab === 'error' && msg.status !== 'ERROR') return false;
+
+        if (currentSearch.trim()) {
+          const q = currentSearch.toLowerCase();
+          return msg.phone.toLowerCase().includes(q) || msg.message.toLowerCase().includes(q);
+        }
+        return true;
+      });
+
+      const total = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / currentPageSize));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const start = (currentPage - 1) * currentPageSize;
+      const pageItems = filtered.slice(start, start + currentPageSize);
+
+      paginationCountText.textContent = total === 0 ? '0 de 0' : `${start + 1}-${Math.min(start + currentPageSize, total)} de ${total}`;
+      prevPageBtn.disabled = currentPage <= 1;
+      nextPageBtn.disabled = currentPage >= totalPages;
+
+      if (pageItems.length === 0) {
+        messagesTableBody.innerHTML = `
+          <tr>
+            <td colspan="5" class="py-12 text-center text-zinc-600 font-mono text-xs">
+              ${currentSearch ? 'No se encontraron mensajes con el criterio buscado.' : 'No hay mensajes registrados.'}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      messagesTableBody.innerHTML = pageItems.map(msg => {
+        const isExp = expandedId === msg._id;
+        const isPending = msg.status === 'PENDIENTE' || msg.status === 'PROCESANDO';
+        const isError = msg.status === 'ERROR';
+
+        const scheduleFormatted = new Date(msg.scheduledAt).toLocaleString(undefined, {
+          year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true
+        });
+
+        return `
+          <tr class="hover:bg-zinc-900/30 transition-colors">
+            <td class="py-2.5 px-3 text-zinc-200 font-medium whitespace-nowrap font-mono">
+              +${msg.phone}
+            </td>
+            <td class="py-2.5 px-3 max-w-xs md:max-w-md">
+              <div onclick="toggleExpand('${msg._id}')" class="font-sans cursor-pointer text-zinc-300 text-xs leading-relaxed ${isExp ? 'break-words' : 'truncate'}" title="Clic para expandir texto">
+                ${escapeHtml(msg.message)}
+              </div>
+            </td>
+            <td class="py-2.5 px-3 text-zinc-400 whitespace-nowrap text-[11px] font-mono">
+              ${scheduleFormatted}
+            </td>
+            <td class="py-2.5 px-3 whitespace-nowrap font-mono">
+              ${msg.status === 'ENVIADO' ? `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-emerald-950/30 border border-emerald-900/40 text-emerald-400">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Enviado
+                </span>
+              ` : isPending ? `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-amber-950/30 border border-amber-900/40 text-amber-400">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>En cola
+                </span>
+              ` : `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-red-950/30 border border-red-900/40 text-red-400" title="${escapeHtml(msg.error || '')}">
+                  <svg class="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  Error
+                </span>
+              `}
+            </td>
+            <td class="py-2.5 px-3 text-right whitespace-nowrap relative font-mono">
+              <div class="inline-flex items-center justify-end gap-1">
+                ${isPending ? `
+                  <button type="button" onclick="sendNow('${msg._id}')" class="px-2 py-1 rounded border border-zinc-800 text-[11px] text-zinc-300 hover:bg-zinc-800 hover:text-white transition-colors" title="Enviar inmediatamente">Disparar</button>
+                ` : isError ? `
+                  <button type="button" onclick="retryMessage('${msg._id}')" class="px-2 py-1 rounded border border-zinc-800 text-[11px] text-amber-400 hover:bg-amber-950/30 transition-colors" title="Reintentar">Reintentar</button>
+                ` : ''}
+
+                <div class="relative inline-block">
+                  <button type="button" onclick="toggleDropdownRow(event, '${msg._id}')" class="w-7 h-7 rounded flex items-center justify-center text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition-colors">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+                  </button>
+
+                  <div id="rowDropdown-${msg._id}" class="hidden absolute right-0 mt-1 w-40 rounded border border-zinc-800 bg-[#121215] py-1 shadow-2xl z-40 text-xs text-left">
+                    ${isPending ? `
+                      <button type="button" onclick="openEditModal('${msg._id}')" class="w-full px-3 py-1.5 flex items-center gap-2 text-zinc-300 hover:bg-zinc-800 transition-colors">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                        <span>Editar texto</span>
+                      </button>
+                      <button type="button" onclick="openRescheduleModal('${msg._id}', '${msg.scheduledAt}')" class="w-full px-3 py-1.5 flex items-center gap-2 text-zinc-300 hover:bg-zinc-800 transition-colors">
+                        <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        <span>Reprogramar</span>
+                      </button>
+                      <div class="h-[1px] bg-zinc-800 my-1"></div>
+                    ` : ''}
+                    <button type="button" onclick="deleteMessage('${msg._id}')" class="w-full px-3 py-1.5 flex items-center gap-2 text-red-400 hover:bg-red-950/30 transition-colors">
+                      <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    window.toggleExpand = function(id) {
+      expandedId = (expandedId === id) ? null : id;
+      renderTable();
+    };
+
+    window.toggleDropdownRow = function(e, id) {
+      e.stopPropagation();
+      document.querySelectorAll('[id^="rowDropdown-"]').forEach(el => {
+        if (el.id !== `rowDropdown-${id}`) el.classList.add('hidden');
+      });
+      const d = document.getElementById(`rowDropdown-${id}`);
+      if (d) d.classList.toggle('hidden');
+    };
+    document.addEventListener('click', () => {
+      document.querySelectorAll('[id^="rowDropdown-"]').forEach(el => el.classList.add('hidden'));
+    });
+
+    // Tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.className = 'tab-btn px-2.5 py-1 rounded text-zinc-500 hover:text-zinc-300';
+        });
+        btn.className = 'tab-btn px-2.5 py-1 rounded font-medium bg-zinc-800 text-zinc-100';
+        currentTab = btn.dataset.tab;
+        currentPage = 1;
+        renderTable();
+      });
+    });
+
+    tableSearchInput.addEventListener('input', (e) => {
+      currentSearch = e.target.value;
+      currentPage = 1;
+      renderTable();
+    });
+
+    pageSizeSelect.addEventListener('change', (e) => {
+      currentPageSize = Number(e.target.value);
+      currentPage = 1;
+      renderTable();
+    });
+
+    prevPageBtn.addEventListener('click', () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderTable();
+      }
+    });
+
+    nextPageBtn.addEventListener('click', () => {
+      currentPage++;
+      renderTable();
+    });
+
+    document.getElementById('tableRefreshBtn').addEventListener('click', fetchMessages);
+
+    // Form submit
+    document.getElementById('schedulerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const dial = document.getElementById('countrySelect').value;
+      const rawNum = document.getElementById('phoneInput').value.replace(/\D/g, '');
+      const rawDate = dateTimeInput.value;
+      const text = messageText.value.trim();
 
-      const phone = phoneInput.value.trim();
-      const rawDateVal = dateInput.value;
-      const message = messageInput.value.trim();
-
-      if (!phone || !rawDateVal || !message) {
-        showToast('Por favor completa todos los campos requeridos.', 'error');
+      if (!rawNum || !rawDate || !text) {
+        showToast('Completa todos los campos requeridos', 'error');
         return;
       }
 
-      // CRÍTICO PARA ZONA HORARIA:
-      // Convertir la fecha local elegida por el usuario a un objeto Date del navegador
-      // y enviarla como ISO String estándar con su marca UTC exacta (Z)
-      const localDateObj = new Date(rawDateVal);
-      if (isNaN(localDateObj.getTime())) {
-        showToast('La fecha seleccionada no es válida.', 'error');
-        return;
-      }
-
-      const scheduledAtUTC = localDateObj.toISOString();
-
-      submitBtn.disabled = true;
-      submitBtn.querySelector('span').textContent = 'Guardando...';
+      const utcDate = new Date(rawDate).toISOString();
+      const btn = document.getElementById('submitFormBtn');
+      btn.disabled = true;
 
       try {
         const res = await fetch('/api/messages', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            phone,
-            scheduledAt: scheduledAtUTC,
-            message
+            phone: `${dial}${rawNum}`,
+            scheduledAt: utcDate,
+            message: text
           })
         });
-
         const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al programar');
 
-        if (res.ok) {
-          showToast('¡Mensaje programado exitosamente a tu hora local!', 'success');
-          messageInput.value = '';
-          charCount.textContent = '0 caracteres';
-          initDateTime();
-          loadMessages();
-        } else {
-          showToast(data.error || 'No se pudo programar el mensaje.', 'error');
-        }
+        showToast('Mensaje programado exitosamente');
+        messageText.value = '';
+        updateCharCounter();
+        removeAttachment();
+        initDateTime();
+        fetchMessages();
       } catch (err) {
-        showToast('Error al conectar con el servidor.', 'error');
+        showToast(err.message, 'error');
       } finally {
-        submitBtn.disabled = false;
-        submitBtn.querySelector('span').textContent = 'Programar Mensaje';
+        btn.disabled = false;
       }
     });
 
-    refreshBtn.addEventListener('click', loadMessages);
+    // Actions
+    window.sendNow = async function(id) {
+      try {
+        const res = await fetch(`/api/messages/${id}/send-now`, { method: 'POST' });
+        if (!res.ok) throw new Error('Error al forzar envío');
+        showToast('Envío inmediato procesándose');
+        fetchMessages();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    };
 
-    function escapeHtml(text) {
-      if (!text) return '';
-      return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
+    window.retryMessage = async function(id) {
+      try {
+        const res = await fetch(`/api/messages/${id}/retry`, { method: 'POST' });
+        if (!res.ok) throw new Error('Error al reintentar');
+        showToast('Mensaje devuelto a la cola');
+        fetchMessages();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    };
+
+    window.deleteMessage = async function(id) {
+      if (!confirm('¿Deseas cancelar y eliminar este registro?')) return;
+      try {
+        const res = await fetch(`/api/messages/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Error al eliminar');
+        showToast('Registro eliminado');
+        fetchMessages();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    };
+
+    // Edit Modal
+    window.openEditModal = function(id) {
+      const found = allMessages.find(m => m._id === id);
+      if (!found) return;
+      document.getElementById('editModalId').value = id;
+      document.getElementById('editModalText').value = found.message;
+      document.getElementById('editModal').classList.remove('hidden');
+    };
+    window.closeEditModal = function() {
+      document.getElementById('editModal').classList.add('hidden');
+    };
+    window.saveEditMessage = async function() {
+      const id = document.getElementById('editModalId').value;
+      const text = document.getElementById('editModalText').value.trim();
+      if (!id || !text) return;
+      try {
+        const res = await fetch(`/api/messages/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        if (!res.ok) throw new Error('Error al editar');
+        showToast('Mensaje editado');
+        closeEditModal();
+        fetchMessages();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    };
+
+    // Reschedule Modal
+    window.openRescheduleModal = function(id, curIso) {
+      document.getElementById('rescheduleModalId').value = id;
+      const d = new Date(curIso);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const hours = String(d.getHours()).padStart(2, '0');
+      const mins = String(d.getMinutes()).padStart(2, '0');
+      document.getElementById('rescheduleModalDateTime').value = `${year}-${month}-${day}T${hours}:${mins}`;
+      document.getElementById('rescheduleModal').classList.remove('hidden');
+    };
+    window.closeRescheduleModal = function() {
+      document.getElementById('rescheduleModal').classList.add('hidden');
+    };
+    window.saveReschedule = async function() {
+      const id = document.getElementById('rescheduleModalId').value;
+      const raw = document.getElementById('rescheduleModalDateTime').value;
+      if (!id || !raw) return;
+      try {
+        const utcDate = new Date(raw).toISOString();
+        const res = await fetch(`/api/messages/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ scheduledAt: utcDate })
+        });
+        if (!res.ok) throw new Error('Error al reprogramar');
+        showToast('Fecha de envío actualizada');
+        closeRescheduleModal();
+        fetchMessages();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    };
+
+    // Logout Modal
+    window.openLogoutModal = function() {
+      const pending = allMessages.filter(m => m.status === 'PENDIENTE' || m.status === 'PROCESANDO').length;
+      const warn = document.getElementById('logoutModalWarning');
+      if (pending > 0) {
+        warn.innerHTML = `<div class="p-2 rounded bg-amber-950/20 border border-amber-900/40 text-amber-300 mb-2">Atención: Tienes <strong>${pending} mensaje(s) pendiente(s)</strong> en cola. Si desvinculas, no se enviarán hasta volver a vincular.</div>Esta acción cerrará la sesión del socket y eliminará las credenciales activas.`;
+      } else {
+        warn.textContent = 'Esta acción cerrará la sesión activa del socket. Deberás escanear un nuevo código QR para volver a programar envíos.';
+      }
+      document.getElementById('logoutModal').classList.remove('hidden');
+    };
+    window.closeLogoutModal = function() {
+      document.getElementById('logoutModal').classList.add('hidden');
+    };
+    window.confirmLogout = async function() {
+      const btn = document.getElementById('confirmLogoutBtn');
+      btn.disabled = true;
+      btn.textContent = 'Desvinculando...';
+      try {
+        const res = await fetch('/api/session/logout', { method: 'POST' });
+        if (!res.ok) throw new Error('Error al desvincular');
+        showToast('Sesión desvinculada');
+        closeLogoutModal();
+        fetchStatus();
+      } catch (e) {
+        showToast(e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Confirmar desvinculación';
+      }
+    };
+    document.getElementById('menuLogoutBtn').addEventListener('click', () => {
+      userMenuDropdown.classList.add('hidden');
+      openLogoutModal();
+    });
+
+    // Theme Toggle
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.toggle('dark');
+      document.getElementById('themeIconSun').classList.toggle('hidden', !isDark);
+      document.getElementById('themeIconMoon').classList.toggle('hidden', isDark);
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 
-    loadMessages();
-    setInterval(loadMessages, 10000);
+    // Start intervals
+    fetchStatus();
+    fetchMessages();
+    setInterval(fetchStatus, 4000);
+    setInterval(fetchMessages, 10000);
   </script>
 </body>
 </html>

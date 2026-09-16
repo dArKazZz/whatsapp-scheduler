@@ -542,6 +542,98 @@ app.delete('/api/messages/:id', async (req, res) => {
   }
 });
 
+app.put('/api/messages/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { message, scheduledAt } = req.body;
+    const updateData = {};
+    if (typeof message === 'string' && message.trim()) {
+      updateData.message = message.trim();
+    }
+    if (scheduledAt) {
+      const parsedDate = new Date(scheduledAt);
+      if (!isNaN(parsedDate.getTime())) {
+        updateData.scheduledAt = parsedDate;
+        updateData.status = 'PENDIENTE';
+      }
+    }
+
+    const updated = await MessageModel.findByIdAndUpdate(id, updateData, { new: true });
+    if (!updated) {
+      return res.status(404).json({ error: 'Mensaje no encontrado.' });
+    }
+
+    res.json({ success: true, data: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al actualizar el mensaje.' });
+  }
+});
+
+app.post('/api/messages/:id/send-now', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const msg = await MessageModel.findById(id);
+    if (!msg) {
+      return res.status(404).json({ error: 'Mensaje no encontrado.' });
+    }
+
+    await MessageModel.findByIdAndUpdate(id, {
+      status: 'PROCESANDO',
+      scheduledAt: new Date()
+    });
+    msg.status = 'PROCESANDO';
+    messageQueue.unshift(msg);
+    processQueue();
+
+    res.json({ success: true, message: 'Envío inmediato en proceso.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al forzar envío inmediato.' });
+  }
+});
+
+app.post('/api/messages/:id/retry', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const msg = await MessageModel.findById(id);
+    if (!msg) {
+      return res.status(404).json({ error: 'Mensaje no encontrado.' });
+    }
+
+    await MessageModel.findByIdAndUpdate(id, {
+      status: 'PROCESANDO',
+      error: null,
+      scheduledAt: new Date()
+    });
+    msg.status = 'PROCESANDO';
+    msg.error = null;
+    messageQueue.push(msg);
+    processQueue();
+
+    res.json({ success: true, message: 'Mensaje re-encolado para envío.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al reintentar mensaje.' });
+  }
+});
+
+app.post('/api/session/logout', async (req, res) => {
+  try {
+    addLog('[API] Desvinculación de sesión solicitada.');
+    if (whatsappState.sock) {
+      try {
+        await whatsappState.sock.logout();
+      } catch (e) {}
+    }
+    await SessionModel.deleteMany({});
+    whatsappState.connected = false;
+    whatsappState.qr = null;
+    setTimeout(connectWhatsApp, 1500);
+
+    res.json({ success: true, message: 'Sesión desvinculada exitosamente.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Error al desvincular la sesión.' });
+  }
+});
+
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
