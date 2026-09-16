@@ -72,21 +72,21 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="h-4 sm:h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800 shrink-0" />
 
           {status.connected ? (
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-sans min-w-0 truncate">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shrink-0" />
-              <span className="font-semibold text-emerald-700 dark:text-emerald-400 hidden xs:inline shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-sans min-w-0">
+              <span className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-emerald-500 shadow-xs shrink-0" />
+              <span className="font-semibold text-emerald-700 dark:text-emerald-400 shrink-0">
                 Conectado
               </span>
               {formatConnectedPhone() && (
-                <span className="hidden sm:inline-block font-mono text-xs px-2.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold truncate max-w-[160px] md:max-w-none">
-                  {formatConnectedPhone()} {status.user?.name ? `· ${status.user.name}` : ''}
+                <span className="hidden xl:inline-block font-mono text-xs px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold truncate max-w-[160px]">
+                  {formatConnectedPhone()}
                 </span>
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-xs sm:text-sm font-sans min-w-0 truncate">
-              <span className={`w-2.5 h-2.5 rounded-full ${status.qr ? 'bg-amber-500 animate-pulse' : 'bg-zinc-400'} shrink-0`} />
-              <span className="font-semibold text-zinc-500 dark:text-zinc-400 truncate">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-sans min-w-0">
+              <span className={`w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full ${status.qr ? 'bg-amber-500 animate-pulse' : 'bg-zinc-400'} shrink-0`} />
+              <span className="font-semibold text-zinc-500 dark:text-zinc-400 shrink-0">
                 {status.qr ? 'Esperando QR' : 'Desconectado'}
               </span>
             </div>
@@ -136,6 +136,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="text-zinc-900 dark:text-zinc-100 font-mono font-semibold truncate mt-0.5">
                     {formatConnectedPhone() || 'Sin dispositivo activo'}
                   </div>
+                </div>
+
+                <div className="px-4 py-2 flex items-center justify-between text-zinc-600 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800 lg:hidden text-xs">
+                  <span>Mensajes</span>
+                  <span className="font-mono font-semibold text-zinc-800 dark:text-zinc-200">
+                    {stats.pendingCount} en cola · {stats.sentTodayCount} enviados
+                  </span>
                 </div>
 
                 <div className="px-4 py-2 flex items-center justify-between text-zinc-600 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
