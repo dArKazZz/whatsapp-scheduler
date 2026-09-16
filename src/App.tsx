@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Navbar } from './components/Navbar';
 import { WhatsAppStatusCard } from './components/WhatsAppStatusCard';
-import { RecentChatsSidebar } from './components/RecentChatsSidebar';
 import { MessageSchedulerForm } from './components/MessageSchedulerForm';
 import { MessageQueueTable } from './components/MessageQueueTable';
-import { WhatsAppStatus, StatsSummary, MessageItem, ChatItem } from './types';
+import { WhatsAppStatus, StatsSummary, MessageItem } from './types';
 
 export const App: React.FC = () => {
   // Modo claro por defecto
@@ -16,10 +15,6 @@ export const App: React.FC = () => {
     lastPing: undefined
   });
   const [messages, setMessages] = useState<MessageItem[]>([]);
-  const [chats, setChats] = useState<ChatItem[]>([]);
-  const [selectedContact, setSelectedContact] = useState<{ phone: string; name?: string } | null>(null);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -33,7 +28,7 @@ export const App: React.FC = () => {
   const fetchStatus = useCallback(async () => {
     try {
       const startTime = performance.now();
-      const res = await fetch('/api/status');
+      const res = await fetch('/api/status', { cache: 'no-store' });
       const pingTime = Math.round(performance.now() - startTime);
       const data = await res.json();
 
@@ -57,11 +52,11 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // 2. Fetch Historial de Mensajes
+  // 2. Fetch Historial de Mensajes (del número conectado)
   const fetchMessages = useCallback(async () => {
     setIsLoadingMessages(true);
     try {
-      const res = await fetch('/api/messages');
+      const res = await fetch('/api/messages', { cache: 'no-store' });
       const json = await res.json();
       setMessages(json.data || []);
     } catch (e) {
@@ -71,28 +66,16 @@ export const App: React.FC = () => {
     }
   }, []);
 
-  // 3. Fetch Chats y Contactos Recientes
-  const fetchChats = useCallback(async () => {
-    try {
-      const res = await fetch('/api/chats');
-      const json = await res.json();
-      setChats(json.data || []);
-    } catch (e) {}
-  }, []);
-
   useEffect(() => {
     fetchStatus();
     fetchMessages();
-    fetchChats();
     const statusInterval = setInterval(fetchStatus, 4000);
     const messagesInterval = setInterval(fetchMessages, 8000);
-    const chatsInterval = setInterval(fetchChats, 12000);
     return () => {
       clearInterval(statusInterval);
       clearInterval(messagesInterval);
-      clearInterval(chatsInterval);
     };
-  }, [fetchStatus, fetchMessages, fetchChats]);
+  }, [fetchStatus, fetchMessages]);
 
   // Estadísticas calculadas
   const stats: StatsSummary = {
@@ -127,7 +110,6 @@ export const App: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Error al programar');
       showToast('Mensaje programado exitosamente');
       fetchMessages();
-      fetchChats();
       return true;
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -173,7 +155,7 @@ export const App: React.FC = () => {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Error en envío masivo');
-      showToast(`${json.count || ids.length} mensajes activados para envío`);
+      showToast(`${json.count || ids.length} mensajes puestos en cola para envío`);
       fetchMessages();
     } catch (err: any) {
       showToast(err.message, 'error');
@@ -254,7 +236,7 @@ export const App: React.FC = () => {
         onToggleTheme={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
       />
 
-      {/* Si NO está conectado: Solo mostrar la pantalla de vincular QR */}
+      {/* Si NO está conectado: Solo mostrar la tarjeta de vincular QR en el centro */}
       {!status.connected ? (
         <main className="flex-1 flex items-center justify-center p-6">
           <WhatsAppStatusCard
@@ -264,50 +246,37 @@ export const App: React.FC = () => {
           />
         </main>
       ) : (
-        /* Si ESTÁ conectado: Ocultar la tarjeta de vinculación y mostrar Sidebar de contactos + Formulario + Tabla */
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          {/* Sidebar de Chats Recientes */}
-          <RecentChatsSidebar
-            chats={chats}
-            selectedPhone={selectedContact?.phone}
-            onSelectChat={(chat) => setSelectedContact({ phone: chat.phone, name: chat.name })}
-            isOpen={isSidebarOpen}
-            onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+        /* Si ESTÁ conectado: Layout directo y limpio (Formulario arriba + Tabla de ancho completo abajo) */
+        <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+          {/* Formulario de Programación */}
+          <MessageSchedulerForm
+            onSubmit={handleScheduleMessage}
+            isSubmitting={isSubmitting}
           />
 
-          {/* Área Principal de Contenido */}
-          <main className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-6 max-w-6xl">
-            {/* Formulario de Programación */}
-            <MessageSchedulerForm
-              onSubmit={handleScheduleMessage}
-              isSubmitting={isSubmitting}
-              prefillContact={selectedContact}
+          {/* Tabla de Mensajes Directa */}
+          <section className="w-full">
+            <MessageQueueTable
+              messages={messages}
+              isLoading={isLoadingMessages}
+              onRefresh={fetchMessages}
+              onDelete={handleDeleteMessage}
+              onEditMessage={handleEditMessage}
+              onReschedule={handleReschedule}
+              onSendNow={handleSendNow}
+              onRetry={handleRetry}
+              onBulkDelete={handleBulkDelete}
+              onBulkSendNow={handleBulkSendNow}
             />
-
-            {/* Tabla de Mensajes con Bulk Actions */}
-            <section className="w-full">
-              <MessageQueueTable
-                messages={messages}
-                isLoading={isLoadingMessages}
-                onRefresh={fetchMessages}
-                onDelete={handleDeleteMessage}
-                onEditMessage={handleEditMessage}
-                onReschedule={handleReschedule}
-                onSendNow={handleSendNow}
-                onRetry={handleRetry}
-                onBulkDelete={handleBulkDelete}
-                onBulkSendNow={handleBulkSendNow}
-              />
-            </section>
-          </main>
-        </div>
+          </section>
+        </main>
       )}
 
       {/* Toast Notification Minimalista */}
       {toastMessage && (
-        <div className="fixed bottom-4 right-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
           <div
-            className={`px-4 py-2.5 rounded-lg text-xs font-sans font-medium border shadow-lg ${
+            className={`px-4 py-2.5 rounded-xl text-sm font-sans font-medium border shadow-lg ${
               toastMessage.type === 'success'
                 ? 'bg-zinc-900 border-zinc-800 text-white dark:bg-white dark:border-zinc-200 dark:text-zinc-900'
                 : 'bg-rose-600 border-rose-700 text-white'

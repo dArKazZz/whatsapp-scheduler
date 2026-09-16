@@ -1,11 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Clock,
   Send,
   Paperclip,
-  X,
-  FileText,
-  UserCheck
+  X
 } from 'lucide-react';
 import { AttachmentItem, CountryPrefix } from '../types';
 
@@ -17,7 +15,6 @@ interface MessageSchedulerFormProps {
     attachment?: AttachmentItem;
   }) => Promise<boolean>;
   isSubmitting?: boolean;
-  prefillContact?: { phone: string; name?: string } | null;
 }
 
 const COUNTRIES: CountryPrefix[] = [
@@ -32,12 +29,10 @@ const COUNTRIES: CountryPrefix[] = [
 
 export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
   onSubmit,
-  isSubmitting = false,
-  prefillContact
+  isSubmitting = false
 }) => {
   const [selectedCountry, setSelectedCountry] = useState<CountryPrefix>(COUNTRIES[0]);
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [contactName, setContactName] = useState<string | null>(null);
   const [rawDateTime, setRawDateTime] = useState(() => {
     const d = new Date();
     d.setMinutes(d.getMinutes() + 5);
@@ -52,26 +47,9 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
   const [attachment, setAttachment] = useState<AttachmentItem | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (prefillContact) {
-      let raw = prefillContact.phone.replace(/\D/g, '');
-      if (raw.startsWith('51') && raw.length === 11) {
-        setSelectedCountry(COUNTRIES[0]);
-        setPhoneNumber(raw.slice(2));
-      } else if (raw.startsWith('1') && raw.length === 11) {
-        setSelectedCountry(COUNTRIES[1]);
-        setPhoneNumber(raw.slice(1));
-      } else {
-        setPhoneNumber(raw);
-      }
-      setContactName(prefillContact.name || null);
-    }
-  }, [prefillContact]);
-
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const numeric = e.target.value.replace(/\D/g, '');
     setPhoneNumber(numeric);
-    if (contactName) setContactName(null);
   };
 
   const addMinutes = (mins: number) => {
@@ -98,17 +76,6 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
     setMessage((prev) => `${prev} {${variableName}} `);
   };
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAttachment({
-        name: file.name,
-        size: file.size,
-        type: file.type
-      });
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phoneNumber.trim() || !message.trim() || !rawDateTime) return;
@@ -129,7 +96,6 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
     if (success) {
       setMessage('');
       setAttachment(null);
-      setContactName(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
@@ -143,12 +109,6 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
             Programar Nuevo Mensaje
           </h2>
         </div>
-        {contactName && (
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium">
-            <UserCheck size={13} />
-            <span>Contacto: {contactName}</span>
-          </div>
-        )}
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 font-sans">
@@ -257,11 +217,6 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
 
           <div className="flex items-center justify-between mt-1 text-xs text-zinc-400 font-mono">
             <span>{message.length} / 1000 caracteres</span>
-            {attachment && (
-              <span className="text-zinc-500 truncate max-w-[200px]">
-                Adjunto: {attachment.name}
-              </span>
-            )}
           </div>
         </div>
 

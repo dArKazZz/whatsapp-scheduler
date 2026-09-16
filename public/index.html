@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WA / Scheduler</title>
-  <!-- Forzar modo claro por defecto de inmediato -->
   <script>
     document.documentElement.classList.remove('dark');
   </script>
@@ -47,8 +46,8 @@
 </head>
 <body class="min-h-screen flex flex-col bg-[#f8fafc] text-zinc-900 dark:bg-[#09090b] dark:text-zinc-100 antialiased selection:bg-zinc-200 dark:selection:bg-zinc-800 transition-colors">
 
-  <!-- 1. SLIM NAVBAR -->
-  <header class="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] px-4 sm:px-6 flex items-center justify-between sticky top-0 z-40 select-none transition-colors shadow-xs">
+  <!-- NAVBAR SLIM -->
+  <header class="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40 select-none transition-colors shadow-xs">
     <!-- Brand & Connection Status -->
     <div class="flex items-center gap-3 sm:gap-4">
       <span class="font-mono text-lg tracking-tight font-bold text-zinc-900 dark:text-white">
@@ -66,13 +65,12 @@
 
     <!-- Right: Stats, Theme Toggle, User Menu -->
     <div class="flex items-center gap-3 sm:gap-4">
-      <!-- Stats Counter (Solo en conectado) -->
       <div id="navStatsContainer" class="hidden md:flex items-center gap-2 text-sm font-mono text-zinc-500 dark:text-zinc-400">
         <span id="navPendingCount" class="font-bold text-zinc-900 dark:text-zinc-100">0</span>
         <span>pendientes</span>
         <span class="text-zinc-300 dark:text-zinc-700">·</span>
         <span id="navSentCount" class="font-bold text-zinc-900 dark:text-zinc-100">0</span>
-        <span>enviados</span>
+        <span>enviados hoy</span>
       </div>
 
       <!-- Toggle Tema (Claro / Oscuro) -->
@@ -107,7 +105,7 @@
             <div id="dropdownPhone" class="text-zinc-900 dark:text-zinc-100 font-mono font-semibold truncate mt-0.5">Sin vincular</div>
           </div>
           <div class="px-4 py-2 flex items-center justify-between text-zinc-600 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
-            <span>Ping Keep-Alive</span>
+            <span>Ping Servidor</span>
             <span id="pingVal" class="font-mono text-zinc-700 dark:text-zinc-300">Activo</span>
           </div>
           <button
@@ -123,7 +121,7 @@
     </div>
   </header>
 
-  <!-- 2. VISTA CUANDO ESTÁ DESCONECTADO (SOLO CÓDIGO QR LIMPIO) -->
+  <!-- 1. VISTA DESCONECTADO (SOLO CÓDIGO QR LIMPIO EN EL CENTRO) -->
   <div id="disconnectedView" class="flex-1 flex items-center justify-center p-6">
     <div class="max-w-md w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-6 sm:p-8 shadow-lg text-zinc-800 dark:text-zinc-100 select-none">
       <div class="flex items-center justify-between pb-4 mb-5 border-b border-zinc-100 dark:border-zinc-800">
@@ -170,291 +168,233 @@
     </div>
   </div>
 
-  <!-- 3. VISTA CUANDO ESTÁ CONECTADO (SIDEBAR CHATS + FORMULARIO + TABLA CON BULK ACTIONS) -->
-  <div id="connectedView" class="hidden flex-1 flex flex-col lg:flex-row overflow-hidden">
+  <!-- 2. VISTA CONECTADO (DIRECTA: FORMULARIO ARRIBA + TABLA COMPLETA ABAJO) -->
+  <main id="connectedView" class="hidden flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-8">
 
-    <!-- SIDEBAR: CHATS RECIENTES Y CONTACTOS -->
-    <aside id="recentChatsSidebar" class="w-full lg:w-84 shrink-0 border-r border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] flex flex-col transition-all duration-200 select-none">
-      <div class="p-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <svg class="w-5 h-5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-          <span class="font-bold text-base tracking-tight">Chats Recientes</span>
-          <span id="chatsCountBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-mono font-bold">0</span>
-        </div>
-        <button
-          id="toggleSidebarBtn"
-          type="button"
-          class="p-1.5 rounded-md text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors hidden lg:block cursor-pointer"
-          title="Ocultar barra lateral"
-        >
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-        </button>
-      </div>
-
-      <!-- Buscador de Contactos -->
-      <div class="p-3 border-b border-zinc-100 dark:border-zinc-800/80">
-        <div class="relative">
-          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-          <input
-            id="chatSearchInput"
-            type="text"
-            placeholder="Buscar contacto o número..."
-            class="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/60 text-sm font-sans placeholder:text-zinc-400 focus:outline-none focus:border-zinc-400 dark:focus:border-zinc-600"
-          />
+    <!-- FORMULARIO DE PROGRAMACIÓN -->
+    <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-6 sm:p-7 shadow-sm text-zinc-900 dark:text-zinc-100">
+      <div class="pb-4 mb-5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <h2 class="text-lg font-bold tracking-tight">Programar Mensaje</h2>
         </div>
       </div>
 
-      <!-- Lista de Chats -->
-      <div id="chatsListContainer" class="flex-1 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800/40">
-        <!-- Renderizado dinámico -->
-      </div>
-    </aside>
-
-    <!-- Botón para Reabrir Sidebar si está colapsado -->
-    <div id="sidebarCollapsedBar" class="hidden lg:flex flex-col items-center py-4 px-2 border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 w-12 shrink-0">
-      <button
-        id="reopenSidebarBtn"
-        type="button"
-        title="Abrir chats recientes"
-        class="p-2 rounded-lg hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 transition-colors cursor-pointer"
-      >
-        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-      </button>
-    </div>
-
-    <!-- ÁREA PRINCIPAL: FORMULARIO + TABLA -->
-    <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 max-w-6xl">
-
-      <!-- Formulario de Programación de Mensajes -->
-      <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-6 sm:p-7 shadow-sm text-zinc-900 dark:text-zinc-100">
-        <div class="pb-4 mb-5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-          <div class="flex items-center gap-2.5">
-            <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <h2 class="text-lg font-bold tracking-tight">Programar Mensaje</h2>
-          </div>
-          <div id="selectedContactPill" class="hidden items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-blue-700 dark:text-blue-300 text-sm font-semibold">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>
-            <span id="selectedContactName">Contacto seleccionado</span>
-            <button type="button" id="clearSelectedContactBtn" class="ml-1 text-blue-400 hover:text-blue-700 font-bold text-base">&times;</button>
-          </div>
-        </div>
-
-        <form id="schedulerForm" class="flex flex-col gap-5">
-          <!-- Campo Destinatario con selector de país -->
-          <div>
-            <label class="block text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
-              Destinatario
-            </label>
-            <div class="flex rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors shadow-xs">
-              <select
-                id="countryPrefixSelect"
-                class="bg-transparent border-r border-zinc-200 dark:border-zinc-700 text-base font-mono font-semibold text-zinc-800 dark:text-zinc-200 px-4 py-3 outline-none cursor-pointer"
-              >
-                <option value="51" selected>PE +51</option>
-                <option value="1">US +1</option>
-                <option value="52">MX +52</option>
-                <option value="57">CO +57</option>
-                <option value="56">CL +56</option>
-                <option value="549">AR +549</option>
-                <option value="34">ES +34</option>
-              </select>
-              <input
-                id="phoneInput"
-                type="tel"
-                required
-                placeholder="954 584 523"
-                class="flex-1 bg-transparent px-4 py-3 text-base font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none"
-              />
-            </div>
-          </div>
-
-          <!-- Fecha y Hora de Envío con Chips -->
-          <div>
-            <label class="block text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
-              Fecha y Hora de Envío
-            </label>
-            <div class="rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors mb-3 shadow-xs">
-              <input
-                id="datetimeInput"
-                type="datetime-local"
-                required
-                class="w-full bg-transparent px-4 py-3 text-base font-mono text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
-              />
-            </div>
-
-            <!-- Chips rápidos -->
-            <div class="flex flex-wrap gap-2">
-              <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="2">+2m</button>
-              <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="10">+10m</button>
-              <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="30">+30m</button>
-              <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="60">+1h</button>
-              <button type="button" id="tomorrowChip" class="px-3.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer">Mañana 09:00</button>
-            </div>
-          </div>
-
-          <!-- Contenido del Mensaje -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
-                Contenido del Mensaje
-              </label>
-              <div class="flex items-center gap-1.5">
-                <span class="text-xs text-zinc-500 font-semibold">Variables:</span>
-                <button type="button" class="insert-var-btn px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 cursor-pointer" data-var="nombre">{nombre}</button>
-                <button type="button" class="insert-var-btn px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 cursor-pointer" data-var="hora">{hora}</button>
-              </div>
-            </div>
-
-            <textarea
-              id="messageInput"
-              rows="4"
-              maxlength="1000"
-              required
-              placeholder="Escribe el mensaje a programar..."
-              class="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 p-4 text-base font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 focus:bg-white dark:focus:bg-zinc-900 transition-colors resize-none shadow-xs"
-            ></textarea>
-
-            <div class="flex items-center justify-between mt-1 text-xs text-zinc-500 font-mono">
-              <span id="charCounter">0 / 1000 caracteres</span>
-            </div>
-          </div>
-
-          <!-- Botón de Envío -->
-          <button
-            id="submitBtn"
-            type="submit"
-            class="w-full py-4 px-6 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-bold text-base flex items-center justify-center gap-2.5 transition-colors cursor-pointer shadow-md"
-          >
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            <span>Programar Envío</span>
-          </button>
-        </form>
-      </div>
-
-      <!-- TABLA DE MENSAJES CON BULK ACTIONS -->
-      <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 flex flex-col shadow-sm overflow-hidden">
-
-        <!-- Barra de Acciones Masivas (Bulk Actions Bar) -->
-        <div id="bulkActionsBar" class="hidden items-center justify-between px-5 py-3.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-b border-zinc-800 dark:border-zinc-200 font-sans text-sm">
-          <div class="flex items-center gap-2.5">
-            <svg class="w-5 h-5 text-emerald-400 dark:text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-            <span id="selectedCountText" class="font-bold">0 seleccionados</span>
-          </div>
-          <div class="flex items-center gap-2.5">
-            <button
-              id="bulkSendNowBtn"
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 font-bold transition-colors cursor-pointer text-xs"
+      <form id="schedulerForm" class="flex flex-col gap-5">
+        <!-- Campo Destinatario con selector de país -->
+        <div>
+          <label class="block text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+            Destinatario
+          </label>
+          <div class="flex rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors shadow-xs">
+            <select
+              id="countryPrefixSelect"
+              class="bg-transparent border-r border-zinc-200 dark:border-zinc-700 text-base font-mono font-semibold text-zinc-800 dark:text-zinc-200 px-4 py-3 outline-none cursor-pointer"
             >
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <span>Disparar ahora</span>
-            </button>
-            <button
-              id="bulkDeleteBtn"
-              type="button"
-              class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold transition-colors cursor-pointer text-xs"
-            >
-              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
-              <span>Eliminar seleccionados</span>
-            </button>
-            <button
-              id="clearSelectionBtn"
-              type="button"
-              class="p-1.5 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900 cursor-pointer text-lg font-bold"
-              title="Deseleccionar"
-            >
-              &times;
-            </button>
-          </div>
-        </div>
-
-        <!-- Toolbar Superior de la Tabla -->
-        <div class="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
-          <!-- Buscador de Mensajes -->
-          <div class="relative w-full sm:w-80">
-            <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <option value="51" selected>PE +51</option>
+              <option value="1">US +1</option>
+              <option value="52">MX +52</option>
+              <option value="57">CO +57</option>
+              <option value="56">CL +56</option>
+              <option value="549">AR +549</option>
+              <option value="34">ES +34</option>
+            </select>
             <input
-              id="tableSearchInput"
-              type="text"
-              placeholder="Buscar por número o mensaje..."
-              class="w-full bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-400 transition-colors"
+              id="phoneInput"
+              type="tel"
+              required
+              placeholder="954 584 523"
+              class="flex-1 bg-transparent px-4 py-3 text-base font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none"
+            />
+          </div>
+        </div>
+
+        <!-- Fecha y Hora de Envío con Chips -->
+        <div>
+          <label class="block text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+            Fecha y Hora de Envío
+          </label>
+          <div class="rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors mb-3 shadow-xs">
+            <input
+              id="datetimeInput"
+              type="datetime-local"
+              required
+              class="w-full bg-transparent px-4 py-3 text-base font-mono text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
             />
           </div>
 
-          <div class="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
-            <!-- Tabs de Filtro -->
-            <div class="flex items-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900/80 p-1 text-sm font-sans">
-              <button type="button" class="tab-btn px-3.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs" data-tab="all">Todos</button>
-              <button type="button" class="tab-btn px-3.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="pending">En Cola</button>
-              <button type="button" class="tab-btn px-3.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="sent">Enviados</button>
-              <button type="button" class="tab-btn px-3.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="error">Fallidos</button>
-            </div>
+          <!-- Chips rápidos -->
+          <div class="flex flex-wrap gap-2">
+            <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="2">+2m</button>
+            <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="10">+10m</button>
+            <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="30">+30m</button>
+            <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="60">+1h</button>
+            <button type="button" id="tomorrowChip" class="px-3.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer">Mañana 09:00</button>
+          </div>
+        </div>
 
-            <!-- Botón Actualizar Tabla -->
-            <button
-              id="refreshTableBtn"
-              type="button"
-              class="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
-              title="Actualizar tabla"
-            >
-              <svg id="refreshIcon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        <!-- Contenido del Mensaje -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+              Contenido del Mensaje
+            </label>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xs text-zinc-500 font-semibold">Variables:</span>
+              <button type="button" class="insert-var-btn px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 cursor-pointer" data-var="nombre">{nombre}</button>
+              <button type="button" class="insert-var-btn px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 cursor-pointer" data-var="hora">{hora}</button>
+            </div>
+          </div>
+
+          <textarea
+            id="messageInput"
+            rows="4"
+            maxlength="1000"
+            required
+            placeholder="Escribe el mensaje a programar..."
+            class="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 p-4 text-base font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 focus:bg-white dark:focus:bg-zinc-900 transition-colors resize-none shadow-xs"
+          ></textarea>
+
+          <div class="flex items-center justify-between mt-1 text-xs text-zinc-500 font-mono">
+            <span id="charCounter">0 / 1000 caracteres</span>
+          </div>
+        </div>
+
+        <!-- Botón de Envío -->
+        <button
+          id="submitBtn"
+          type="submit"
+          class="w-full py-4 px-6 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-bold text-base flex items-center justify-center gap-2.5 transition-colors cursor-pointer shadow-md"
+        >
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span>Programar Envío</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- TABLA DIRECTA DE MENSAJES (BULK ACTIONS INCLUIDO) -->
+    <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 flex flex-col shadow-sm overflow-hidden">
+
+      <!-- Barra de Acciones Masivas (Bulk Actions Bar) -->
+      <div id="bulkActionsBar" class="hidden items-center justify-between px-5 py-3.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-b border-zinc-800 dark:border-zinc-200 font-sans text-sm">
+        <div class="flex items-center gap-2.5">
+          <svg class="w-5 h-5 text-emerald-400 dark:text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span id="selectedCountText" class="font-bold">0 seleccionados</span>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <button
+            id="bulkSendNowBtn"
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 dark:bg-zinc-200 hover:bg-zinc-700 dark:hover:bg-zinc-300 font-bold transition-colors cursor-pointer text-xs"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Disparar ahora</span>
+          </button>
+          <button
+            id="bulkDeleteBtn"
+            type="button"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold transition-colors cursor-pointer text-xs"
+          >
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            <span>Eliminar seleccionados</span>
+          </button>
+          <button
+            id="clearSelectionBtn"
+            type="button"
+            class="p-1.5 text-zinc-400 dark:text-zinc-500 hover:text-white dark:hover:text-zinc-900 cursor-pointer text-lg font-bold"
+            title="Deseleccionar"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
+
+      <!-- Toolbar Superior de la Tabla -->
+      <div class="p-4 sm:p-5 border-b border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3">
+        <!-- Buscador de Mensajes -->
+        <div class="relative w-full sm:w-80">
+          <svg class="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input
+            id="tableSearchInput"
+            type="text"
+            placeholder="Buscar por número o mensaje..."
+            class="w-full bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl pl-10 pr-4 py-2.5 text-sm font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none focus:border-zinc-900 dark:focus:border-zinc-400 transition-colors"
+          />
+        </div>
+
+        <div class="flex items-center gap-2.5 w-full sm:w-auto justify-between sm:justify-end">
+          <!-- Tabs de Filtro -->
+          <div class="flex items-center rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900/80 p-1 text-sm font-sans">
+            <button type="button" class="tab-btn px-3.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs" data-tab="all">Todos</button>
+            <button type="button" class="tab-btn px-3.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="pending">En Cola</button>
+            <button type="button" class="tab-btn px-3.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="sent">Enviados</button>
+            <button type="button" class="tab-btn px-3.5 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200" data-tab="error">Fallidos</button>
+          </div>
+
+          <!-- Botón Actualizar Tabla -->
+          <button
+            id="refreshTableBtn"
+            type="button"
+            class="p-2.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer"
+            title="Actualizar tabla"
+          >
+            <svg id="refreshIcon" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla -->
+      <div class="overflow-x-auto min-h-[300px]">
+        <table class="w-full text-left text-base font-sans">
+          <thead class="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-xs font-bold uppercase text-zinc-500 tracking-wider select-none">
+            <tr>
+              <th class="py-3.5 px-4 w-12 text-center">
+                <input
+                  id="selectAllCheckbox"
+                  type="checkbox"
+                  class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
+                  title="Seleccionar todos"
+                />
+              </th>
+              <th class="py-3.5 px-4">Destinatario</th>
+              <th class="py-3.5 px-4">Mensaje</th>
+              <th class="py-3.5 px-4">Programación</th>
+              <th class="py-3.5 px-4">Estado</th>
+              <th class="py-3.5 px-4 text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="messagesTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+            <!-- Renderizado dinámico -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Paginador -->
+      <div class="p-4 sm:p-5 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 text-sm font-sans text-zinc-500 select-none">
+        <div class="flex items-center gap-2">
+          <span>Filas por página:</span>
+          <select id="pageSizeSelect" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 outline-none font-mono text-zinc-800 dark:text-zinc-200 cursor-pointer">
+            <option value="10" selected>10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+          </select>
+          <span id="totalCountText" class="font-mono ml-2 font-medium">Total: 0 mensajes</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span id="pageIndicator" class="font-mono font-medium">Página 1 de 1</span>
+          <div class="flex items-center gap-1.5">
+            <button id="prevPageBtn" type="button" class="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <button id="nextPageBtn" type="button" class="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
             </button>
           </div>
         </div>
-
-        <!-- Tabla -->
-        <div class="overflow-x-auto min-h-[300px]">
-          <table class="w-full text-left text-base font-sans">
-            <thead class="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-xs font-bold uppercase text-zinc-500 tracking-wider select-none">
-              <tr>
-                <th class="py-3.5 px-4 w-12 text-center">
-                  <input
-                    id="selectAllCheckbox"
-                    type="checkbox"
-                    class="w-4 h-4 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 cursor-pointer"
-                    title="Seleccionar todos"
-                  />
-                </th>
-                <th class="py-3.5 px-4">Destinatario</th>
-                <th class="py-3.5 px-4">Mensaje</th>
-                <th class="py-3.5 px-4">Programación</th>
-                <th class="py-3.5 px-4">Estado</th>
-                <th class="py-3.5 px-4 text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody id="messagesTableBody" class="divide-y divide-zinc-100 dark:divide-zinc-800/50">
-              <!-- Renderizado dinámico -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Paginador -->
-        <div class="p-4 sm:p-5 border-t border-zinc-200 dark:border-zinc-800 flex flex-wrap items-center justify-between gap-3 text-sm font-sans text-zinc-500 select-none">
-          <div class="flex items-center gap-2">
-            <span>Filas por página:</span>
-            <select id="pageSizeSelect" class="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 outline-none font-mono text-zinc-800 dark:text-zinc-200 cursor-pointer">
-              <option value="10" selected>10</option>
-              <option value="25">25</option>
-              <option value="50">50</option>
-            </select>
-            <span id="totalCountText" class="font-mono ml-2 font-medium">Total: 0 mensajes</span>
-          </div>
-
-          <div class="flex items-center gap-3">
-            <span id="pageIndicator" class="font-mono font-medium">Página 1 de 1</span>
-            <div class="flex items-center gap-1.5">
-              <button id="prevPageBtn" type="button" class="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-              </button>
-              <button id="nextPageBtn" type="button" class="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 disabled:opacity-40 transition-colors cursor-pointer">
-                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </section>
+  </main>
 
   <!-- MODAL: EDITAR MENSAJE -->
   <div id="editModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
@@ -500,7 +440,6 @@
   <script>
     // ESTADO GLOBAL
     let allMessages = [];
-    let allChats = [];
     let currentTab = 'all';
     let searchQuery = '';
     let currentPage = 1;
@@ -515,7 +454,6 @@
 
     // TEMA (MODO CLARO POR DEFECTO ESTRICTO)
     function initTheme() {
-      // Si no hay preferencia explícita en esta sesión, forzar light mode
       const savedTheme = localStorage.getItem('theme');
       if (savedTheme === 'dark') {
         document.documentElement.classList.add('dark');
@@ -617,7 +555,6 @@
           disconnectMenuBtn.classList.remove('hidden');
           navStatsContainer.classList.remove('hidden');
 
-          // Ocultar tarjeta QR, mostrar espacio de trabajo
           disconnectedView.classList.add('hidden');
           connectedView.classList.remove('hidden');
 
@@ -671,131 +608,7 @@
       }
     }
 
-    // FETCH CHATS / CONTACTOS RECIENTES
-    async function fetchChats() {
-      if (!isConnected) return;
-      try {
-        const url = connectedPhone ? `/api/chats?senderPhone=${connectedPhone}` : '/api/chats';
-        const res = await fetch(url, { cache: 'no-store' });
-        const json = await res.json();
-        allChats = json.data || [];
-        renderChats();
-      } catch (e) {
-        console.error('Error en fetchChats:', e);
-      }
-    }
-
-    function renderChats() {
-      const container = document.getElementById('chatsListContainer');
-      const badge = document.getElementById('chatsCountBadge');
-      const search = (document.getElementById('chatSearchInput').value || '').toLowerCase().trim();
-
-      const filtered = allChats.filter((c) => {
-        if (!search) return true;
-        return (c.name && c.name.toLowerCase().includes(search)) ||
-               c.phone.includes(search) ||
-               (c.lastMessage && c.lastMessage.toLowerCase().includes(search));
-      });
-
-      badge.textContent = allChats.length;
-
-      if (filtered.length === 0) {
-        container.innerHTML = `
-          <div class="p-8 text-center text-xs text-zinc-400 font-sans space-y-1">
-            <svg class="w-6 h-6 mx-auto text-zinc-300 dark:text-zinc-600 mb-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            <p>No se encontraron contactos</p>
-          </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = filtered.map((c) => {
-        const initial = c.name ? c.name.charAt(0).toUpperCase() : '#';
-        const displayName = c.name || formatPhone(c.phone);
-        const phoneFormatted = formatPhone(c.phone);
-        const timeStr = c.timestamp ? new Date(c.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-
-        return `
-          <button
-            type="button"
-            class="chat-contact-item w-full text-left p-3.5 flex items-start gap-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer"
-            data-phone="${c.phone}"
-            data-name="${c.name || ''}"
-          >
-            <div class="w-9 h-9 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
-              ${initial}
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center justify-between">
-                <span class="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">${displayName}</span>
-                <span class="text-xs text-zinc-400 shrink-0 font-mono ml-1">${timeStr}</span>
-              </div>
-              <div class="text-xs font-mono text-zinc-500 truncate">${phoneFormatted}</div>
-              ${c.lastMessage ? `<div class="text-xs text-zinc-400 truncate mt-0.5">${c.lastMessage}</div>` : ''}
-            </div>
-          </button>
-        `;
-      }).join('');
-
-      document.querySelectorAll('.chat-contact-item').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const phone = btn.getAttribute('data-phone');
-          const name = btn.getAttribute('data-name');
-          selectContactForForm({ phone, name });
-        });
-      });
-    }
-
-    function selectContactForForm({ phone, name }) {
-      const phoneInput = document.getElementById('phoneInput');
-      const prefixSelect = document.getElementById('countryPrefixSelect');
-      const pill = document.getElementById('selectedContactPill');
-      const nameSpan = document.getElementById('selectedContactName');
-
-      let raw = phone.replace(/\D/g, '');
-      if (raw.startsWith('51') && raw.length === 11) {
-        prefixSelect.value = '51';
-        phoneInput.value = raw.slice(2);
-      } else if (raw.startsWith('1') && raw.length === 11) {
-        prefixSelect.value = '1';
-        phoneInput.value = raw.slice(1);
-      } else {
-        phoneInput.value = raw;
-      }
-
-      if (name) {
-        nameSpan.textContent = `Contacto: ${name}`;
-        pill.classList.remove('hidden');
-        pill.classList.add('inline-flex');
-      } else {
-        pill.classList.add('hidden');
-        pill.classList.remove('inline-flex');
-      }
-
-      document.getElementById('messageInput').focus();
-      showToast(`Contacto seleccionado: ${name || formatPhone(phone)}`);
-    }
-
-    document.getElementById('clearSelectedContactBtn').addEventListener('click', () => {
-      const pill = document.getElementById('selectedContactPill');
-      pill.classList.add('hidden');
-      pill.classList.remove('inline-flex');
-    });
-
-    document.getElementById('chatSearchInput').addEventListener('input', renderChats);
-
-    // SIDEBAR TOGGLE
-    document.getElementById('toggleSidebarBtn').addEventListener('click', () => {
-      document.getElementById('recentChatsSidebar').classList.add('hidden');
-      document.getElementById('sidebarCollapsedBar').classList.remove('hidden');
-    });
-
-    document.getElementById('reopenSidebarBtn').addEventListener('click', () => {
-      document.getElementById('recentChatsSidebar').classList.remove('hidden');
-      document.getElementById('sidebarCollapsedBar').classList.add('hidden');
-    });
-
-    // FETCH MESSAGES (FILTRADO EXCLUSIVAMENTE POR EL NÚMERO CONECTADO)
+    // FETCH MESSAGES (FILTRADO POR EL NÚMERO CONECTADO)
     async function fetchMessages() {
       if (!isConnected) return;
       try {
@@ -1271,11 +1084,8 @@
           showToast('Mensaje programado exitosamente');
           msgInput.value = '';
           charCounter.textContent = '0 / 1000 caracteres';
-          document.getElementById('selectedContactPill').classList.add('hidden');
-          document.getElementById('selectedContactPill').classList.remove('inline-flex');
 
           fetchMessages();
-          fetchChats();
         } catch (err) {
           showToast(err.message, 'error');
         } finally {
@@ -1320,11 +1130,9 @@
     initSchedulerForm();
     fetchStatus();
     fetchMessages();
-    fetchChats();
 
     setInterval(fetchStatus, 4000);
     setInterval(fetchMessages, 8000);
-    setInterval(fetchChats, 12000);
   </script>
 </body>
 </html>
