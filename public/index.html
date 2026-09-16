@@ -47,24 +47,24 @@
 <body class="min-h-screen flex flex-col bg-[#f8fafc] text-zinc-900 dark:bg-[#09090b] dark:text-zinc-100 antialiased selection:bg-zinc-200 dark:selection:bg-zinc-800 transition-colors">
 
   <!-- NAVBAR SLIM -->
-  <header class="h-16 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] px-4 sm:px-8 flex items-center justify-between sticky top-0 z-40 select-none transition-colors shadow-xs">
+  <header class="h-16 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] px-3 sm:px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40 select-none transition-colors shadow-xs">
     <!-- Brand & Connection Status -->
-    <div class="flex items-center gap-3 sm:gap-4">
-      <span class="font-mono text-lg tracking-tight font-bold text-zinc-900 dark:text-white">
+    <div class="flex items-center gap-2.5 sm:gap-4 min-w-0">
+      <span class="font-mono text-base sm:text-lg tracking-tight font-bold text-zinc-900 dark:text-white shrink-0">
         WA / Scheduler
       </span>
 
-      <div class="h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800"></div>
+      <div class="h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800 shrink-0"></div>
 
-      <div class="flex items-center gap-2.5 text-sm font-sans">
-        <span id="navStatusDot" class="w-2.5 h-2.5 rounded-full bg-zinc-400"></span>
-        <span id="navStatusText" class="font-semibold text-zinc-600 dark:text-zinc-400">Desconectado</span>
-        <span id="navUserBadge" class="hidden font-mono text-xs px-2.5 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold"></span>
+      <div class="flex items-center gap-2 sm:gap-2.5 text-xs sm:text-sm font-sans min-w-0">
+        <span id="navStatusDot" class="w-2.5 h-2.5 rounded-full bg-zinc-400 shrink-0"></span>
+        <span id="navStatusText" class="font-semibold text-zinc-600 dark:text-zinc-400 truncate">Desconectado</span>
+        <span id="navUserBadge" class="hidden font-mono text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold truncate max-w-[120px] sm:max-w-[220px]"></span>
       </div>
     </div>
 
     <!-- Right: Stats, Theme Toggle, User Menu -->
-    <div class="flex items-center gap-3 sm:gap-4">
+    <div class="flex items-center gap-2 sm:gap-3 shrink-0">
       <div id="navStatsContainer" class="hidden md:flex items-center gap-2 text-sm font-mono text-zinc-500 dark:text-zinc-400">
         <span id="navPendingCount" class="font-bold text-zinc-900 dark:text-zinc-100">0</span>
         <span>pendientes</span>
@@ -77,7 +77,7 @@
       <button
         id="themeToggleBtn"
         type="button"
-        class="w-10 h-10 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center transition-colors cursor-pointer"
+        class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center transition-colors cursor-pointer shrink-0"
         title="Cambiar tema"
       >
         <svg id="themeIconSun" class="w-4 h-4 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
@@ -89,13 +89,13 @@
         <button
           id="userMenuBtn"
           type="button"
-          class="flex items-center gap-2 px-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-sm font-semibold transition-colors cursor-pointer"
+          class="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
         >
-          <div id="userAvatarLetter" class="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-300">
+          <div id="userAvatarLetter" class="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-300 shrink-0">
             W
           </div>
-          <span id="navUserName" class="hidden sm:inline max-w-[140px] truncate">Sesión</span>
-          <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          <span id="navUserName" class="hidden md:inline max-w-[130px] truncate">Sesión</span>
+          <svg class="w-3.5 h-3.5 text-zinc-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </button>
 
         <!-- Dropdown Menu -->
@@ -168,11 +168,11 @@
     </div>
   </div>
 
-  <!-- 2. VISTA CONECTADO (DIRECTA: FORMULARIO ARRIBA + TABLA COMPLETA ABAJO) -->
-  <main id="connectedView" class="hidden flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-8">
+  <!-- 2. VISTA CONECTADO (DIRECTA: FORMULARIO ARRIBA + TABLA COMPLETA ABAJO A ANCHO COMPLETO) -->
+  <main id="connectedView" class="hidden flex-1 w-full px-3 sm:px-6 lg:px-8 py-6 flex flex-col gap-6">
 
     <!-- FORMULARIO DE PROGRAMACIÓN -->
-    <div class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-6 sm:p-7 shadow-sm text-zinc-900 dark:text-zinc-100">
+    <div class="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-5 sm:p-7 shadow-sm text-zinc-900 dark:text-zinc-100">
       <div class="pb-4 mb-5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <svg class="w-5 h-5 text-zinc-600 dark:text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -181,55 +181,58 @@
       </div>
 
       <form id="schedulerForm" class="flex flex-col gap-5">
-        <!-- Campo Destinatario con selector de país -->
-        <div>
-          <label class="block text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
-            Destinatario
-          </label>
-          <div class="flex rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors shadow-xs">
-            <select
-              id="countryPrefixSelect"
-              class="bg-transparent border-r border-zinc-200 dark:border-zinc-700 text-base font-mono font-semibold text-zinc-800 dark:text-zinc-200 px-4 py-3 outline-none cursor-pointer"
-            >
-              <option value="51" selected>PE +51</option>
-              <option value="1">US +1</option>
-              <option value="52">MX +52</option>
-              <option value="57">CO +57</option>
-              <option value="56">CL +56</option>
-              <option value="549">AR +549</option>
-              <option value="34">ES +34</option>
-            </select>
-            <input
-              id="phoneInput"
-              type="tel"
-              required
-              placeholder="954 584 523"
-              class="flex-1 bg-transparent px-4 py-3 text-base font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none"
-            />
-          </div>
-        </div>
-
-        <!-- Fecha y Hora de Envío con Chips -->
-        <div>
-          <label class="block text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
-            Fecha y Hora de Envío
-          </label>
-          <div class="rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors mb-3 shadow-xs">
-            <input
-              id="datetimeInput"
-              type="datetime-local"
-              required
-              class="w-full bg-transparent px-4 py-3 text-base font-mono text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
-            />
+        <!-- Fila responsive: Destinatario + Fecha/Hora -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+          <!-- Campo Destinatario con selector de país -->
+          <div>
+            <label class="block text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+              Destinatario
+            </label>
+            <div class="flex rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors shadow-xs">
+              <select
+                id="countryPrefixSelect"
+                class="bg-transparent border-r border-zinc-200 dark:border-zinc-700 text-base font-mono font-semibold text-zinc-800 dark:text-zinc-200 px-3 sm:px-4 py-3 outline-none cursor-pointer"
+              >
+                <option value="51" selected>PE +51</option>
+                <option value="1">US +1</option>
+                <option value="52">MX +52</option>
+                <option value="57">CO +57</option>
+                <option value="56">CL +56</option>
+                <option value="549">AR +549</option>
+                <option value="34">ES +34</option>
+              </select>
+              <input
+                id="phoneInput"
+                type="tel"
+                required
+                placeholder="954 584 523"
+                class="flex-1 bg-transparent px-4 py-3 text-base font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none min-w-0"
+              />
+            </div>
           </div>
 
-          <!-- Chips rápidos -->
-          <div class="flex flex-wrap gap-2">
-            <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="2">+2m</button>
-            <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="10">+10m</button>
-            <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="30">+30m</button>
-            <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="60">+1h</button>
-            <button type="button" id="tomorrowChip" class="px-3.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer">Mañana 09:00</button>
+          <!-- Fecha y Hora de Envío con Chips -->
+          <div>
+            <label class="block text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+              Fecha y Hora de Envío
+            </label>
+            <div class="rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors mb-3 shadow-xs">
+              <input
+                id="datetimeInput"
+                type="datetime-local"
+                required
+                class="w-full bg-transparent px-4 py-3 text-base font-mono text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
+              />
+            </div>
+
+            <!-- Chips rápidos -->
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="2">+2m</button>
+              <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="10">+10m</button>
+              <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="30">+30m</button>
+              <button type="button" class="quick-time-chip px-3 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer" data-mins="60">+1h</button>
+              <button type="button" id="tomorrowChip" class="px-3.5 py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors cursor-pointer">Mañana 09:00</button>
+            </div>
           </div>
         </div>
 
@@ -276,7 +279,7 @@
     <section class="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 flex flex-col shadow-sm overflow-hidden">
 
       <!-- Barra de Acciones Masivas (Bulk Actions Bar) -->
-      <div id="bulkActionsBar" class="hidden items-center justify-between px-5 py-3.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-b border-zinc-800 dark:border-zinc-200 font-sans text-sm">
+      <div id="bulkActionsBar" class="hidden flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-3 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-b border-zinc-800 dark:border-zinc-200 font-sans text-sm">
         <div class="flex items-center gap-2.5">
           <svg class="w-5 h-5 text-emerald-400 dark:text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
           <span id="selectedCountText" class="font-bold">0 seleccionados</span>
@@ -344,8 +347,8 @@
       </div>
 
       <!-- Tabla -->
-      <div class="overflow-x-auto min-h-[300px]">
-        <table class="w-full text-left text-base font-sans">
+      <div class="overflow-x-auto min-h-[300px] w-full">
+        <table class="w-full min-w-[760px] text-left text-base font-sans">
           <thead class="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800 text-xs font-bold uppercase text-zinc-500 tracking-wider select-none">
             <tr>
               <th class="py-3.5 px-4 w-12 text-center">

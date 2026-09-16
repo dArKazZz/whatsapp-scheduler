@@ -1,9 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   Clock,
-  Send,
-  Paperclip,
-  X
+  Send
 } from 'lucide-react';
 import { AttachmentItem, CountryPrefix } from '../types';
 
@@ -101,104 +99,106 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
   };
 
   return (
-    <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-5 sm:p-6 shadow-sm text-zinc-900 dark:text-zinc-100 select-none">
+    <div className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] p-5 sm:p-7 shadow-sm text-zinc-900 dark:text-zinc-100 select-none">
       <div className="pb-4 mb-5 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <Clock size={18} className="text-zinc-500" />
-          <h2 className="text-base font-semibold font-sans tracking-tight">
+          <Clock size={20} className="text-zinc-500" />
+          <h2 className="text-lg font-bold font-sans tracking-tight">
             Programar Nuevo Mensaje
           </h2>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5 font-sans">
-        {/* Campo Teléfono */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
-            Destinatario
-          </label>
-          <div className="flex rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors shadow-xs">
-            <select
-              value={selectedCountry.code}
-              onChange={(e) => {
-                const found = COUNTRIES.find((c) => c.code === e.target.value);
-                if (found) setSelectedCountry(found);
-              }}
-              className="bg-transparent border-r border-zinc-200 dark:border-zinc-700 text-sm font-mono text-zinc-700 dark:text-zinc-300 px-3 py-2.5 outline-none cursor-pointer"
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-                  {c.code} +{c.dialCode}
-                </option>
-              ))}
-            </select>
-            <input
-              type="tel"
-              value={phoneNumber}
-              onChange={handlePhoneChange}
-              placeholder={selectedCountry.formatPlaceholder}
-              required
-              className="flex-1 bg-transparent px-3.5 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Selector de Fecha y Hora */}
-        <div>
-          <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 mb-1.5">
-            Fecha y Hora de Envío
-          </label>
-
-          <div className="rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors mb-2.5 shadow-xs">
-            <input
-              type="datetime-local"
-              value={rawDateTime}
-              onChange={(e) => setRawDateTime(e.target.value)}
-              required
-              className="w-full bg-transparent px-3.5 py-2.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
-            />
-          </div>
-
-          {/* Chips de ajuste rápido */}
-          <div className="flex flex-wrap gap-1.5">
-            {[
-              { label: '+2m', action: () => addMinutes(2) },
-              { label: '+10m', action: () => addMinutes(10) },
-              { label: '+30m', action: () => addMinutes(30) },
-              { label: '+1h', action: () => addMinutes(60) },
-              { label: 'Mañana 09:00', action: setTomorrowMorning }
-            ].map((chip) => (
-              <button
-                key={chip.label}
-                type="button"
-                onClick={chip.action}
-                className="px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300 transition-colors"
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6 font-sans">
+        {/* Grid de 2 columnas en pantallas medianas y grandes */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
+          {/* Campo Teléfono */}
+          <div>
+            <label className="block text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+              Destinatario
+            </label>
+            <div className="flex rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors shadow-xs">
+              <select
+                value={selectedCountry.code}
+                onChange={(e) => {
+                  const found = COUNTRIES.find((c) => c.code === e.target.value);
+                  if (found) setSelectedCountry(found);
+                }}
+                className="bg-transparent border-r border-zinc-200 dark:border-zinc-700 text-sm sm:text-base font-mono font-semibold text-zinc-700 dark:text-zinc-300 px-3 sm:px-4 py-3 outline-none cursor-pointer"
               >
-                {chip.label}
-              </button>
-            ))}
+                {COUNTRIES.map((c) => (
+                  <option key={c.code} value={c.code} className="bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
+                    {c.code} +{c.dialCode}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={phoneNumber}
+                onChange={handlePhoneChange}
+                placeholder={selectedCountry.formatPlaceholder}
+                required
+                className="flex-1 bg-transparent px-3.5 sm:px-4 py-3 text-sm sm:text-base font-mono text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Selector de Fecha y Hora */}
+          <div>
+            <label className="block text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300 mb-2">
+              Fecha y Hora de Envío
+            </label>
+            <div className="rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 focus-within:border-zinc-900 dark:focus-within:border-zinc-400 focus-within:bg-white dark:focus-within:bg-zinc-900 transition-colors mb-2.5 shadow-xs">
+              <input
+                type="datetime-local"
+                value={rawDateTime}
+                onChange={(e) => setRawDateTime(e.target.value)}
+                required
+                className="w-full bg-transparent px-3.5 sm:px-4 py-3 text-sm sm:text-base font-mono text-zinc-900 dark:text-zinc-100 outline-none cursor-pointer"
+              />
+            </div>
+
+            {/* Chips de ajuste rápido */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+              {[
+                { label: '+2m', action: () => addMinutes(2) },
+                { label: '+10m', action: () => addMinutes(10) },
+                { label: '+30m', action: () => addMinutes(30) },
+                { label: '+1h', action: () => addMinutes(60) },
+                { label: 'Mañana 09:00', action: setTomorrowMorning }
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  type="button"
+                  onClick={chip.action}
+                  className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-xs sm:text-sm font-mono font-semibold text-zinc-700 dark:text-zinc-300 transition-colors"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Mensaje */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="text-xs font-semibold uppercase tracking-wider text-zinc-600 dark:text-zinc-400">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
               Contenido del Mensaje
             </label>
-            <div className="flex items-center gap-1.5">
-              <span className="text-[11px] text-zinc-400">Variables:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-zinc-500 font-semibold">Variables:</span>
               <button
                 type="button"
                 onClick={() => insertVariable('nombre')}
-                className="px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 text-xs font-mono text-zinc-700 dark:text-zinc-300"
+                className="px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200"
               >
                 {'{nombre}'}
               </button>
               <button
                 type="button"
                 onClick={() => insertVariable('hora')}
-                className="px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 hover:bg-zinc-200 text-xs font-mono text-zinc-700 dark:text-zinc-300"
+                className="px-2.5 py-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200"
               >
                 {'{hora}'}
               </button>
@@ -211,11 +211,11 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
             rows={4}
             maxLength={1000}
             required
-            placeholder="Escribe el contenido del mensaje a programar..."
-            className="w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 p-3.5 text-sm font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 focus:bg-white dark:focus:bg-zinc-900 transition-colors resize-none shadow-xs"
+            placeholder="Escribe el mensaje a programar..."
+            className="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/60 p-4 text-base font-sans text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 dark:focus:border-zinc-400 focus:bg-white dark:focus:bg-zinc-900 transition-colors resize-none shadow-xs"
           />
 
-          <div className="flex items-center justify-between mt-1 text-xs text-zinc-400 font-mono">
+          <div className="flex items-center justify-between mt-1.5 text-xs text-zinc-500 font-mono">
             <span>{message.length} / 1000 caracteres</span>
           </div>
         </div>
@@ -224,13 +224,13 @@ export const MessageSchedulerForm: React.FC<MessageSchedulerFormProps> = ({
         <button
           type="submit"
           disabled={isSubmitting || !phoneNumber || !message.trim()}
-          className="w-full py-3 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-semibold text-sm flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+          className="w-full py-3.5 sm:py-4 px-6 rounded-xl bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:hover:bg-white text-white dark:text-zinc-900 font-bold text-base flex items-center justify-center gap-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md cursor-pointer"
         >
           {isSubmitting ? (
             <span>Guardando mensaje...</span>
           ) : (
             <>
-              <Send size={16} />
+              <Send size={18} />
               <span>Programar Envío</span>
             </>
           )}

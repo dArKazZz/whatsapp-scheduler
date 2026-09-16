@@ -6,8 +6,7 @@ import {
   Wifi,
   ChevronDown,
   AlertTriangle,
-  X,
-  Smartphone
+  X
 } from 'lucide-react';
 import { WhatsAppStatus, StatsSummary } from '../types';
 
@@ -63,45 +62,45 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="h-13 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40 select-none transition-colors">
+      <header className="h-16 w-full border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#09090b] text-zinc-900 dark:text-zinc-100 flex items-center justify-between px-3 sm:px-6 lg:px-8 sticky top-0 z-40 select-none transition-colors shadow-xs">
         {/* Brand & Status */}
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-base tracking-tight font-bold text-zinc-900 dark:text-white">
+        <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+          <span className="font-mono text-base sm:text-lg tracking-tight font-bold text-zinc-900 dark:text-white shrink-0">
             WA / Scheduler
           </span>
 
-          <div className="h-4 w-[1px] bg-zinc-200 dark:bg-zinc-800" />
+          <div className="h-4 sm:h-5 w-[1px] bg-zinc-200 dark:bg-zinc-800 shrink-0" />
 
           {status.connected ? (
-            <div className="flex items-center gap-2 text-xs font-sans">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-xs" />
-              <span className="font-medium text-emerald-700 dark:text-emerald-400">
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-sans min-w-0 truncate">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-xs shrink-0" />
+              <span className="font-semibold text-emerald-700 dark:text-emerald-400 hidden xs:inline shrink-0">
                 Conectado
               </span>
               {formatConnectedPhone() && (
-                <span className="hidden sm:inline-block font-mono text-xs px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+                <span className="hidden sm:inline-block font-mono text-xs px-2.5 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-semibold truncate max-w-[160px] md:max-w-none">
                   {formatConnectedPhone()} {status.user?.name ? `· ${status.user.name}` : ''}
                 </span>
               )}
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-xs font-sans">
-              <span className={`w-2 h-2 rounded-full ${status.qr ? 'bg-amber-500 animate-pulse' : 'bg-zinc-400'}`} />
-              <span className="font-medium text-zinc-500 dark:text-zinc-400">
-                {status.qr ? 'Esperando escaneo QR' : 'Desconectado'}
+            <div className="flex items-center gap-2 text-xs sm:text-sm font-sans min-w-0 truncate">
+              <span className={`w-2.5 h-2.5 rounded-full ${status.qr ? 'bg-amber-500 animate-pulse' : 'bg-zinc-400'} shrink-0`} />
+              <span className="font-semibold text-zinc-500 dark:text-zinc-400 truncate">
+                {status.qr ? 'Esperando QR' : 'Desconectado'}
               </span>
             </div>
           )}
         </div>
 
-        {/* Right: Stats, Theme, User Session */}
-        <div className="flex items-center gap-3 sm:gap-4">
+        {/* Right Controls */}
+        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
           {status.connected && (
-            <div className="hidden md:flex items-center gap-2 text-xs text-zinc-600 dark:text-zinc-400 font-mono">
-              <span className="font-semibold text-zinc-900 dark:text-zinc-200">{stats.pendingCount}</span>
+            <div className="hidden lg:flex items-center gap-2 text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 font-mono">
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">{stats.pendingCount}</span>
               <span>pendientes</span>
               <span className="text-zinc-300 dark:text-zinc-700">·</span>
-              <span className="font-semibold text-zinc-900 dark:text-zinc-200">{stats.sentTodayCount}</span>
+              <span className="font-bold text-zinc-900 dark:text-zinc-100">{stats.sentTodayCount}</span>
               <span>enviados</span>
             </div>
           )}
@@ -109,40 +108,40 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Toggle Theme */}
           <button
             onClick={onToggleTheme}
-            className="w-9 h-9 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center transition-colors"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center justify-center transition-colors shrink-0"
             title={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
           >
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
           </button>
 
           {/* Session Dropdown */}
-          <div className="relative" ref={menuRef}>
+          <div className="relative shrink-0" ref={menuRef}>
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-sans font-medium transition-colors"
+              className="flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs sm:text-sm font-semibold transition-colors"
             >
-              <div className="w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-700 dark:text-zinc-300">
+              <div className="w-6 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-700 dark:text-zinc-300 shrink-0">
                 {status.user?.name ? status.user.name.charAt(0).toUpperCase() : 'W'}
               </div>
-              <span className="hidden sm:inline max-w-[130px] truncate">
+              <span className="hidden md:inline max-w-[130px] truncate">
                 {status.user?.name || (status.connected ? 'Mi Cuenta' : 'Sesión')}
               </span>
-              <ChevronDown size={14} className="text-zinc-400" />
+              <ChevronDown size={14} className="text-zinc-400 shrink-0" />
             </button>
 
             {menuOpen && (
-              <div className="absolute right-0 mt-1.5 w-64 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] py-1 shadow-lg z-50 text-xs font-sans">
-                <div className="px-3.5 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] py-2 shadow-xl z-50 text-sm font-sans">
+                <div className="px-4 py-2.5 border-b border-zinc-100 dark:border-zinc-800">
                   <div className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider">Número vinculado</div>
-                  <div className="text-zinc-900 dark:text-zinc-100 font-mono font-medium truncate mt-0.5">
+                  <div className="text-zinc-900 dark:text-zinc-100 font-mono font-semibold truncate mt-0.5">
                     {formatConnectedPhone() || 'Sin dispositivo activo'}
                   </div>
                 </div>
 
-                <div className="px-3.5 py-2 flex items-center justify-between text-zinc-600 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="px-4 py-2 flex items-center justify-between text-zinc-600 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800">
                   <div className="flex items-center gap-2">
-                    <Wifi size={13} className="text-zinc-400" />
-                    <span>Ping Keep-Alive</span>
+                    <Wifi size={14} className="text-zinc-400" />
+                    <span>Ping Servidor</span>
                   </div>
                   <span className="font-mono text-zinc-700 dark:text-zinc-300">
                     {status.lastPing ? `${status.lastPing}ms` : 'Activo'}
@@ -155,9 +154,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setMenuOpen(false);
                       setLogoutModalOpen(true);
                     }}
-                    className="w-full px-3.5 py-2.5 text-left flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors font-medium"
+                    className="w-full px-4 py-2.5 text-left flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 font-semibold transition-colors"
                   >
-                    <LogOut size={14} />
+                    <LogOut size={15} />
                     <span>Desvincular WhatsApp</span>
                   </button>
                 )}
@@ -170,35 +169,35 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Modal Desvinculación */}
       {logoutModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4">
-          <div className="w-full max-w-sm rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-800 dark:text-zinc-200 p-5 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-3 border-b border-zinc-200 dark:border-zinc-800">
-              <div className="flex items-center gap-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                <AlertTriangle size={16} className="text-amber-500" />
-                <span>Desvincular sesión de WhatsApp</span>
+          <div className="w-full max-w-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121215] text-zinc-900 dark:text-zinc-100 p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3.5 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-100">
+                <AlertTriangle size={18} className="text-amber-500" />
+                <span>Desvincular WhatsApp</span>
               </div>
               <button
                 onClick={() => setLogoutModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 text-xl"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             </div>
 
-            <div className="py-4 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed font-sans">
+            <div className="py-4 text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed font-sans">
               {stats.pendingCount > 0 && (
-                <div className="p-2.5 rounded-md bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 mb-3">
-                  Atención: Tienes <strong>{stats.pendingCount} mensaje(s) programado(s)</strong>. Si desvinculas ahora, no saldrán hasta volver a vincular.
+                <div className="p-3 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 text-amber-800 dark:text-amber-300 mb-3 font-medium">
+                  Atención: Tienes <strong>{stats.pendingCount} mensaje(s) programado(s)</strong>.
                 </div>
               )}
               Se cerrará la conexión activa y se borrarán las credenciales locales de la sesión.
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800">
               <button
                 type="button"
                 onClick={() => setLogoutModalOpen(false)}
                 disabled={isLoggingOut}
-                className="px-3.5 py-1.5 text-xs rounded-md border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                className="px-4 py-2 text-sm rounded-lg border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-semibold transition-colors"
               >
                 Cancelar
               </button>
@@ -206,7 +205,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 type="button"
                 onClick={handleConfirmLogout}
                 disabled={isLoggingOut}
-                className="px-3.5 py-1.5 text-xs rounded-md bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
+                className="px-4 py-2 text-sm rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold transition-colors"
               >
                 {isLoggingOut ? 'Desvinculando...' : 'Confirmar desvinculación'}
               </button>
